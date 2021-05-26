@@ -58,6 +58,9 @@ SCRIPT=getMain.sh
 START_VARS_TAG="Start generic Variables"
 END_VARS_TAG="End generic Variables"
 FORCE_READ=N
+
+echo $*
+
 [ "$1" = "-f" ] && { FORCE_READ=Y ; shift ; }
 [ "$1" = "-?" ] && usage 
 
