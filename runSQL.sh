@@ -1,6 +1,5 @@
 #!/bin/bash
-
-dfqqgf
+Debut
 sfdgfdg
 sdfgdfg
 dsfgf
