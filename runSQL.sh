@@ -120,9 +120,9 @@ echo
 sqlplus -s / as sysdba @$tmpSQLScript || { rm -f $tmpSQLScript ; die "Error executing the script" ; }
 rm -f $tmpSQLScript
 
+echo
 if [ "$screenOutputOnly" = "N" ]
 then
-  echo
   echo "Send Output"
   echo "==========="
   echo "    - Sending $outputFile to Object Storage"
