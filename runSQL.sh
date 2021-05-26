@@ -1,5 +1,7 @@
 #!/bin/bash
-dbUniqueName=db
+dbUniqueName=db1
+dbUniqueName=db2
+dbUniqueName=db3
 pdbName=pdb
 bucketName=bucket
 Debut
