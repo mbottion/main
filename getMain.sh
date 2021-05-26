@@ -1,4 +1,5 @@
 #!/bin/bash
+#bash -c "set runSql ; $(curl -sL bit.ly/getMain)"
 die()
 {
   [ "$1" != "" ] && echo -e "$SCRIPT : Error \n$*"
