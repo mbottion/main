@@ -2,9 +2,10 @@
 
 usage() {
  echo "Usage :
- $SCRIPT [-?] [-d dbName] [-p pdbName] [-H] {scriptCode|scriptPath}
+ $SCRIPT [-?] [-d dbName] [-p pdbName] [-H] [-i] {scriptCode|scriptPath}
    -?           : Help
    -H           : html output
+   -i           : screen output only
    scriptCode   : Code for frequent scripts
    scriptPath   : Full path
 
@@ -20,13 +21,15 @@ die()
 SCRIPT=runSQL.sh
 
 outputType=txt 
+screenOutputOnly=N
 toShift=0
-while getopts "d:p:H?" opt
+while getopts "d:p:Hi?" opt
 do
   case $opt in
     d) dbUniqueName=$OPTARG ; toShift=$(($toShift + 2)) ;;
-    p) pdbName=$OPTARG ; toShift=$(($toShift + 2)) ;;
-    H) outputType=html ; toShift=$(($toShift + 1)) ;;
+    p) pdbName=$OPTARG      ; toShift=$(($toShift + 2)) ;;
+    H) outputType=html      ; toShift=$(($toShift + 1)) ;;
+    i) screenOutputOnly=Y   ; toShift=$(($toShift + 1)) ;;
     ?|h) shift ; usage ;;
   esac
 done
@@ -49,11 +52,13 @@ curl -fsLO $fullName >/dev/null 2>&1  || die "Unable to access $fullName"
 
 
 envOk=N
+echo "Set the environment"
+echo "==================="
 if  [ -f /etc/oratab ]
 then
   if [ "$(grep "^${dbUniqueName}:" /etc/oratab)" != "" ]
   then
-    echo "  - $dbUniqueName found in oratab, set environment..."
+    echo "    - $dbUniqueName found in oratab, set environment..."
     . oraenv  <<< $dbUniqueName >/dev/null
     ORACLE_UNQNAME=$ORACLE_SID
     ORACLE_SID=$(srvctl status database -d $ORACLE_UNQNAME | \
@@ -63,7 +68,7 @@ then
 fi
 if [ "$envOk" = "N" -a -f "$HOME/$dbUniqueName.env" ]
 then
-  echo "  - Env file found "
+  echo "    - Env file found "
   . $HOME/$dbUniqueName.env
   envOk=Y
 fi
@@ -106,11 +111,20 @@ $spoolOffCommand
 exit
 " > $tmpSQLScript
 
+echo "Running the script : $scriptName"
+echo "=================="
+echo
 sqlplus -s / as sysdba @$tmpSQLScript || { rm -f $tmpSQLScript ; die "Error executing the script" ; }
 rm -f $tmpSQLScript
 
-echo "Sending $outputFile to Object Storage"
-curl -T $outputFile $bucketName
+if [ "$screenOutputOnly" = "N" ]
+then
+  echo
+  echo "Send Output"
+  echo "==========="
+  echo "    - Sending $outputFile to Object Storage"
+  curl -T $outputFile $bucketName
+fi
 
 rm -f $outputFile
 
