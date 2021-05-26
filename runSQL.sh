@@ -11,6 +11,7 @@ usage() {
 
    Download a script from gitHup and run it under sqlplus
   "
+  exit
 }
 die()
 {
@@ -52,6 +53,7 @@ curl -fsLO $fullName >/dev/null 2>&1  || die "Unable to access $fullName"
 
 
 envOk=N
+echo
 echo "Set the environment"
 echo "==================="
 if  [ -f /etc/oratab ]
@@ -111,6 +113,7 @@ $spoolOffCommand
 exit
 " > $tmpSQLScript
 
+echo
 echo "Running the script : $scriptName"
 echo "=================="
 echo
@@ -123,6 +126,7 @@ then
   echo "Send Output"
   echo "==========="
   echo "    - Sending $outputFile to Object Storage"
+  echo
   curl -T $outputFile $bucketName
 fi
 
