@@ -1,2 +1,2 @@
 #!/bin/bash
-echo "Getting Main scripts"
+echo "Getting Main scripts : $1"
