@@ -16,12 +16,12 @@ setupVariable()
     value=$(sed -e "s;#.*$;;" $s.old | grep "${v}=" | cut -f2 -d= | head -1) 
   fi
   defaultValue=$value
-  case $variable in
+  case $v in
     dbUniqueName) defaultValue=${ORACLE_UNQNAME} ;;
     oracleSid)    defaultValue=${ORACLE_SID} ;;
     oracleHome)   defaultValue=${ORACLE_HOME} ;;
   esac
-  if [ -z $value -o "$FORCE_READ" = "Y" ]
+  if [ -z "$value" -o "$FORCE_READ" = "Y" ]
   then
     read -p "  - Enter default value for $v [$defaultValue] : " value
     [ -z $value ] && value=$defaultValue
@@ -58,9 +58,6 @@ SCRIPT=getMain.sh
 START_VARS_TAG="Start generic Variables"
 END_VARS_TAG="End generic Variables"
 FORCE_READ=N
-
-echo $*
-
 [ "$1" = "-f" ] && { FORCE_READ=Y ; shift ; }
 [ "$1" = "-?" ] && usage 
 
@@ -101,7 +98,5 @@ do
   setupVariable $v $src
 done
 
-chmod 775 $s
-rm -f $s.old
-
-
+chmod 775 $src
+rm -f $src.old
