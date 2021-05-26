@@ -1,10 +1,6 @@
 #!/bin/bash
-#dbUniqueName=db1
-dbUniqueName=db2
-#dbUniqueName=db3
-pdbName=pdb
-bucketName=bucket
-Debut
-Suite
-sdfgdfg
-dsfgf
+
+usage() {
+
+}
+SCRIPT=runSQL.sh
