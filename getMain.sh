@@ -13,7 +13,7 @@ setupVariable()
   local defaultValue
   if [ -f $s.old ]
   then
-    value=$(sed -e "s;#.*$;;" $s.old | grep "^ *${v}=" | cut -f2 -d= | head -1) 
+    value=$(sed -e "s;#.*$;;" $s.old | grep "^${v}=" | cut -f2 -d= | head -1) 
   fi
   defaultValue=$value
   case $v in
