@@ -5,6 +5,6 @@ dbUniqueName=db2
 pdbName=pdb
 bucketName=bucket
 Debut
-sfdgfdg
+Suite
 sdfgdfg
 dsfgf
