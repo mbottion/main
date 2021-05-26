@@ -26,7 +26,7 @@ setupVariable()
     read -p "  - Enter default value for $v [$defaultValue] : " value
     [ -z $value ] && value=$defaultValue
   fi
-  if [ "$(grep "${v}=" $s)" = "" ]
+  if [ "$(grep "^ *${v}=" $s)" = "" ]
   then
     if [ "$(grep "$START_VARS_TAG" $s)" = "" ]
     then
