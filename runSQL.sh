@@ -39,6 +39,7 @@ gitHub=https://raw.githubusercontent.com/mbottion
 case ${1^^} in
   LONGOPS) scriptName=SQLTools/main/longOps.sql ;;
   TBSUSAGE) scriptName=SQLTools/main/tbsUsage.sql ;;
+  DISKSPERCELL) scriptName=ASMTools/main/disksPerCell.sql ;;
   *) die "No valid code"
 esac
 
