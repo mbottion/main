@@ -4,7 +4,7 @@
 dbUniqueName=prd02exa_fra1w2
 pdbName=bna0ppr
 bucketName=https://objectstorage.eu-frankfurt-1.oraclecloud.com/p/P0kG7DEFRA5RsAs3HG9ofzufmljEMd_0pwVLD0GNh5KqOuw4qe0Q6woMSLFpVkNB/n/cnafsi/b/MBO/o/
-gitHubToken=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
+gitHubToken=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
 # ================== End generic Variables (do not remove or change this line) ==================
 usage() {
  echo "Usage :
@@ -49,14 +49,24 @@ uploadToGitHub ()
     echo "File Exists in gitHub"
     sha=$(curl -s -X GET $apiFile | grep "sha" | cut -f2 -d: | cut -f2 -d"\"")
     echo "update the file"
+    #
+    #  Clean-up file (avoid posting personal information or token)
+    #
+    cp -p $f $f.tmp
+    for var in dbUniqueName pdbName bucketName gitHubToken
+    do
+      echo "Removing $var value"
+      sed -i "s;^\($var=\).*;\1" $f.tmp
+    done
     local json="
 {\
   \"path\" : \"$fs\", \
   \"message\" : \"Updated by $SCRIPT\", \
-  \"content\" : \"$(base64 $f | tr '\n' ' ' | sed -e "s; ;;g")\", \
+  \"content\" : \"$(base64 $f.tmp | tr '\n' ' ' | sed -e "s; ;;g")\", \
   \"sha\" : \"$sha\" \
 }"
-
+    rm -f $f.tmp
+    
     curl -v -i -X PUT -H "Authorization: token $gitHubToken" \
          -d "$json" $apiFile
   else
