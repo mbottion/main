@@ -44,42 +44,49 @@ uploadToGitHub ()
   local gitFile=$gitHub/$r/main/$fs
   local apiFile=https://api.github.com/repos/mbottion/$r/contents/$fs
   
+  echo "Send file $f to gitHub"
   if scriptExists $gitFile
   then
-    echo "File Exists in gitHub"
+    echo "  - File Exists in gitHub"
     sha=$(curl -s -X GET $apiFile | grep "sha" | cut -f2 -d: | cut -f2 -d"\"")
-    echo "update the file"
-    #
-    #  Clean-up file (avoid posting personal information or token)
-    #
-    cp -p $f $f.tmp
-    for var in dbUniqueName pdbName bucketName gitHubToken
-    do
-      echo "Removing $var value"
-      sed -i "s;^\($var=\).*;\1;" $f.tmp || { rm -f $f.tmp ; die "Error modifying the file" ; }
-    done
-    local json="
-{\
-  \"path\" : \"$fs\", \
-  \"message\" : \"Updated by $SCRIPT\", \
-  \"content\" : \"$(base64 $f.tmp | tr '\n' ' ' | sed -e "s; ;;g")\", \
-  \"sha\" : \"$sha\" \
-}"
-echo $json > json1.txt
-    rm -f $f.tmp
-    
-    result=$(curl  -s -S -X PUT -w "ERRORCODE=%{http_code}" -H "Authorization: token $gitHubToken" \
-         -d "$json" $apiFile)
-    errCode=$(echo $result | sed -e "s;\(^.*ERRORCODE=\);;")
-    mess=$(echo $result | sed -e "s;\(ERRORCODE=.*\)$;;")
-    if [ "$errCode" != "200" ]
-    then
-      echo $mess
-      die "Unable to load the file (http Error : $errCode)"
-     fi
+    sha_string=" , \"sha\" : \"$sha\""
   else
-    echo "File do not Exists in gitHub"
+    echo "  - New file in gitHub"
+    sha_string=""
   fi
+  #
+  #  Clean-up file (avoid posting personal information or token)
+  #
+  echo "  - Cleaning file"
+  cp -p $f $f.tmp
+  for var in dbUniqueName pdbName bucketName gitHubToken
+  do
+    echo "    - Removing $var value"
+    sed -i "s;^\($var=\).*;\1;" $f.tmp || { rm -f $f.tmp ; die "Error modifying the file" ; }
+  done
+  local json="
+{\
+    \"path\" : \"$fs\" \
+   ,\"message\" : \"Updated by $SCRIPT\" \
+   ,\"content\" : \"$(base64 $f.tmp | tr '\n' ' ' | sed -e "s; ;;g")\" \
+   $sha_string
+}"
+  rm -f $f.tmp
+    
+  echo -n "  - Sending file --> "
+  curl  -s -S -X PUT -w "\nERRORCODE=%{http_code}" -H "Authorization: token $gitHubToken" \
+        -d "$json" $apiFile > /tmp/$$.tmp
+  errCode=$(grep ERRORCODE /tmp/$$.tmp | cut -f2 -d"=")
+  if [ "$errCode" != "200" ]
+  then
+    echo "ERROR"
+    grep -v ERRORCODE /tmp/$$.tmp
+    rm -f /tmp/$$.tmp
+    die "Unable to load the file (http Error : $errCode)"
+  else
+    echo "Ok"
+  fi
+  rm -f /tmp/$$.tmp
   
 }
 
@@ -93,8 +100,8 @@ uploadScriptOnly=N
 while getopts "d:p:Higl?" opt
 do
   case $opt in
-    d) dbUniqueName=prd02exa_fra1w2 ; toShift=$(($toShift + 2)) ;;
-    p) pdbName=bna0ppr      ; toShift=$(($toShift + 2)) ;;
+    d) dbUniqueName=$OPTARG ; toShift=$(($toShift + 2)) ;;
+    p) pdbName=$OPTARG      ; toShift=$(($toShift + 2)) ;;
     H) outputType=html      ; toShift=$(($toShift + 1)) ;;
     i) screenOutputOnly=Y   ; toShift=$(($toShift + 1)) ;;
     g) getScriptOnly=Y      ; toShift=$(($toShift + 1)) ;;
