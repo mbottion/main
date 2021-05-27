@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # ================== Start generic Variables (do not remove or change this line)==================
-dbUniqueName=prd02exa_fra1w2
-pdbName=bna0ppr
-bucketName=https://objectstorage.eu-frankfurt-1.oraclecloud.com/p/P0kG7DEFRA5RsAs3HG9ofzufmljEMd_0pwVLD0GNh5KqOuw4qe0Q6woMSLFpVkNB/n/cnafsi/b/MBO/o/
-gitHubToken=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
+dbUniqueName=
+pdbName=
+bucketName=
+gitHubToken=
 # ================== End generic Variables (do not remove or change this line) ==================
 usage() {
  echo "Usage :
@@ -56,7 +56,7 @@ uploadToGitHub ()
     for var in dbUniqueName pdbName bucketName gitHubToken
     do
       echo "Removing $var value"
-      sed -i "s;^\($var=\).*;\1" $f.tmp
+      sed -i "s;^\($var=\).*;\1;" $f.tmp || { rm -f $f.tmp ; die "Error modifying the file" ; }
     done
     local json="
 {\
