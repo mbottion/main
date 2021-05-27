@@ -67,7 +67,7 @@ uploadToGitHub ()
 }"
     rm -f $f.tmp
     
-    curl -v -i -X PUT -H "Authorization: token $gitHubToken" \
+    curl -f -i -X PUT -H "Authorization: token $gitHubToken" \
          -d "$json" $apiFile
   else
     echo "File do not Exists in gitHub"
