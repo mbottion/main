@@ -83,6 +83,11 @@ case $script_type in
     repo=main
     variables="bucketName"
     ;;
+  SENDBUCKET)
+    src=sendBucket.sh
+    repo=main
+    variables="bucketName"
+    ;;
   *)
     die "Unknown script type ($script_type), use runSQL or runShell"
     ;;
