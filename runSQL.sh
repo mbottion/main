@@ -44,6 +44,7 @@ case ${1^^} in
   LONGOPS) scriptName=SQLTools/main/longOps.sql ;;
   TBSUSAGE) scriptName=SQLTools/main/tbsUsage.sql ;;
   DISKSPERCELL) scriptName=ASMTools/main/disksPerCell.sql ;;
+  OPAREGIS) scriptName=OPATools/main/OPARegis.sql ;;
   *) die "No valid code"
 esac
 
