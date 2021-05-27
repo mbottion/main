@@ -76,7 +76,7 @@ case $script_type in
   RUNSQL)
     src=runSQL.sh
     repo=main
-    variables="dbUniqueName pdbName bucketName"
+    variables="dbUniqueName pdbName bucketName gitHubToken gitHubUser"
     ;;
   RUNSHELL)
     src=runShell.sh
