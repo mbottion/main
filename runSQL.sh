@@ -5,6 +5,7 @@ dbUniqueName=
 pdbName=
 bucketName=
 gitHubToken=
+gitHubUser=
 # ================== End generic Variables (do not remove or change this line) ==================
 usage() {
  echo "Usage :
@@ -42,7 +43,7 @@ uploadToGitHub ()
   local t=$3
   local fs=$(basename $f)
   local gitFile=$gitHub/$r/main/$fs
-  local apiFile=https://api.github.com/repos/mbottion/$r/contents/$fs
+  local apiFile=https://api.github.com/repos/$gitHubUser/$r/contents/$fs
   
   echo "Send file $f to gitHub"
   if scriptExists $gitFile
@@ -59,7 +60,7 @@ uploadToGitHub ()
   #
   echo "  - Cleaning file"
   cp -p $f $f.tmp
-  for var in dbUniqueName pdbName bucketName gitHubToken
+  for var in dbUniqueName pdbName bucketName gitHubToken gitHubUser
   do
     echo "    - Removing $var value"
     sed -i "s;^\($var=\).*;\1;" $f.tmp || { rm -f $f.tmp ; die "Error modifying the file" ; }
@@ -77,7 +78,7 @@ uploadToGitHub ()
   curl  -s -S -X PUT -w "\nERRORCODE=%{http_code}" -H "Authorization: token $gitHubToken" \
         -d "$json" $apiFile > /tmp/$$.tmp
   errCode=$(grep ERRORCODE /tmp/$$.tmp | cut -f2 -d"=")
-  if [ "$errCode" != "200" ]
+  if [ "$errCode" != "200" -a "$errCode" != "201" ]
   then
     echo "ERROR"
     grep -v ERRORCODE /tmp/$$.tmp
