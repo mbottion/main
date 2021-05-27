@@ -67,8 +67,15 @@ uploadToGitHub ()
 }"
     rm -f $f.tmp
     
-    curl  -s -S -X PUT -w "ERRORCODE=%{http_code}" -H "Authorization: token $gitHubToken" \
-         -d "$json" $apiFile || die "Unable to load the file"
+    result=$(curl  -s -S -X PUT -w "ERRORCODE=%{http_code}" -H "Authorization: token $gitHubToken" \
+         -d "$json" $apiFile)
+    errCode=$(echo $result | sed -e "s;\(^.*ERRORCODE=\);;")
+    mess=$(echo $result | sed -e "s;\(ERRORCODE=.*\)$;;")
+    if [ "$errCode" != "200" ]
+    then
+      echo $mess
+      die "Unable to load the file (http Error : $errCode)"
+     fi
   else
     echo "File do not Exists in gitHub"
   fi
