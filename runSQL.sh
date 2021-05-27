@@ -113,7 +113,7 @@ done
 shift $toShift
 
 
-gitHub=https://raw.githubusercontent.com/mbottion
+gitHub=https://raw.githubusercontent.com/$gitHubUser
 
 [ "$1" = "" ] && die "No script or script code to run"
 case ${1^^} in
