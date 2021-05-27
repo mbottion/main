@@ -101,8 +101,8 @@ uploadScriptOnly=N
 while getopts "d:p:Higl?" opt
 do
   case $opt in
-    d) dbUniqueName=$OPTARG ; toShift=$(($toShift + 2)) ;;
-    p) pdbName=$OPTARG      ; toShift=$(($toShift + 2)) ;;
+    d) dbUniqueName=prd02exa_fra1w2 ; toShift=$(($toShift + 2)) ;;
+    p) pdbName=bna0ppr      ; toShift=$(($toShift + 2)) ;;
     H) outputType=html      ; toShift=$(($toShift + 1)) ;;
     i) screenOutputOnly=Y   ; toShift=$(($toShift + 1)) ;;
     g) getScriptOnly=Y      ; toShift=$(($toShift + 1)) ;;
