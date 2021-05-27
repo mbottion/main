@@ -65,6 +65,7 @@ uploadToGitHub ()
   \"content\" : \"$(base64 $f.tmp | tr '\n' ' ' | sed -e "s; ;;g")\", \
   \"sha\" : \"$sha\" \
 }"
+echo $json > json1.txt
     rm -f $f.tmp
     
     result=$(curl  -s -S -X PUT -w "ERRORCODE=%{http_code}" -H "Authorization: token $gitHubToken" \
