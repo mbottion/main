@@ -63,25 +63,22 @@ FORCE_READ=N
 [ "$1" = "-f" ] && { FORCE_READ=Y ; shift ; }
 [ "$1" = "-?" ] && usage 
 
-[ "$1" = "" ] && die "Please enter the script Type [runSQL|runShell]"
-
-
-script_type=${1^^}
+if [ "$1" = "" ]
+then
+  script_type="RUNSCRIPT"
+else
+  script_type=${1^^}
+fi
 
 gitHub=https://raw.githubusercontent.com/mbottion
 
 echo "Getting Main scripts : $1"
 
 case $script_type in
-  RUNSQL)
-    src=runSQL.sh
+  RUNSCRIPT)
+    src=runScript.sh
     repo=main
     variables="dbUniqueName pdbName bucketName gitHubToken gitHubUser"
-    ;;
-  RUNSHELL)
-    src=runShell.sh
-    repo=main
-    variables="bucketName"
     ;;
   SENDBUCKET)
     src=sendBucket.sh
@@ -89,7 +86,7 @@ case $script_type in
     variables="bucketName"
     ;;
   *)
-    die "Unknown script type ($script_type), use runSQL or runShell"
+    die "Unknown script type ($script_type), use runScript or sendBucket"
     ;;
 esac
 
