@@ -25,7 +25,7 @@ SCRIPT=sendBucket.sh
 while getopts "h?" opt
 do
   case $opt in
-    b) bucketName=$OPTARG ; shift ;;
+    b) bucketName=$OPTARG ; shift 2 ;;
     ?|h) shift ; usage ;;
   esac
 done
