@@ -90,6 +90,81 @@ uploadToGitHub ()
   
 }
 
+runShell()
+{
+  outputFile=/tmp/$(basename $fullName .sh)_$(date +%Y%MD_%h%m%d)_$f.txt
+  scriptFile=/tmp/$$.sh.tmp
+  curl -sL $fullName > $scriptFile
+  chmod 700 $scriptFile
+  $scriptFile $scriptParameters
+  rm -f $scriptFile
+}
+
+runSQL()
+{
+  
+  f=$(sqlplus -s / as sysdba <<%%
+  set feed off heading off pages 0 feedback off
+  whenever sqlerror exit failure
+  alter session set container=$pdbName ;
+  select to_char(sysdate,'yyyymmdd_hh24miss') || '_' || lower(d.name) || '_' 
+                        || replace(sys_context('USERENV','CON_NAME'),'$','_') 
+  from dual,v\$database d ;
+%%
+) || die "Error getting the file name from database"
+  
+  outputFile=/tmp/$(basename $fullName .sql)_$f.$outputType
+  spoolOnCommand="spool $outputFile"
+  spoolOffCommand="spool off"
+  
+  if [ "$outputType" = "html" ]
+  then
+    termoutCommand="set term off"
+    sqlplusFormatCommand="set markup HTML ON 
+  set feed off"
+  fi
+  
+  tmpSQLScript=/tmp/$$.tmp.sql
+  echo "
+  whenever sqlerror exit failure
+  whenever oserror exit failure
+  set feedback off
+  alter session set container=$pdbName ;
+  
+  set term off
+  set feed off
+  set verify off
+  column 1 new_value 1 
+  column 2 new_value 2 
+  column 3 new_value 3 
+  column 4 new_value 4 
+  column 5 new_value 5 
+  column 6 new_value 6 
+  column 7 new_value 7 
+  column 8 new_value 8 
+  column 9 new_value 9 
+
+  select '' \"1\", '' \"2\", '' \"3\", '' \"4\",'' \"5\", '' \"6\", '' \"7\", '' \"8\",'' \"9\" from dual where 1=2 ;
+  set term on feed on lines 2000 trimout on pages 50000
+
+
+  $termoutCommand
+  $sqlplusFormatCommand
+  $spoolOnCommand
+  $(curl -sL $fullName)
+  $spoolOffCommand
+  exit
+  " > $tmpSQLScript
+
+  echo
+  echo "Running the script : $fullName"
+  echo "=================="
+  echo
+  sqlplus -s / as sysdba @$tmpSQLScript $scriptParameters || { rm -f $tmpSQLScript ; die "Error executing the script" ; }
+  rm -f $tmpSQLScript
+
+}
+
 SCRIPT=runSQL.sh
 
 repositoriesList="SQLTools ASMTools CNAFTools"
@@ -101,8 +176,8 @@ uploadScriptOnly=N
 while getopts "d:p:Higl?" opt
 do
   case $opt in
-    d) dbUniqueName=prd02exa_fra1w2 ; toShift=$(($toShift + 2)) ;;
-    p) pdbName=bna0ppr      ; toShift=$(($toShift + 2)) ;;
+    d) dbUniqueName=prd01exa ; toShift=$(($toShift + 2)) ;;
+    p) pdbName=bna0prd      ; toShift=$(($toShift + 2)) ;;
     H) outputType=html      ; toShift=$(($toShift + 1)) ;;
     i) screenOutputOnly=Y   ; toShift=$(($toShift + 1)) ;;
     g) getScriptOnly=Y      ; toShift=$(($toShift + 1)) ;;
@@ -129,11 +204,20 @@ fi
 echo
 echo "Identifying file to run"
 echo "======================="
+extraParameters=""
 if [ -f $1 ]
 then
   echo "  - Local file "
   fullName="file://$(readlink -f $1)"
   scriptExists $fullName || die "Unable to access $fullName"
+  [ "$1" = "sendBucket.sh" ] && extraParameters="-b $bucketName"
+elif [ "$1" = "help.sh" ]
+then
+  fullName="$gitHub/main/main/$1"
+elif [ "sendBucket.sh" ]
+then
+  fullName="$gitHub/main/main/$1"
+  extraParameters="-b $bucketName"
 elif [ "$(echo ${1^^} | cut -c 1-4)" = "HTTP" ]
 then
   echo "  - Full gitHub Path"
@@ -163,14 +247,13 @@ else
 fi
 
 shift
-scriptParameters="$*"
+scriptParameters="$extraParameters $*"
 
 if  [ "$getScriptOnly" = "Y" ]
 then
   curl -fsLO $fullName >/dev/null
   exit 0
 fi
-
 
 envOk=N
 echo
@@ -194,74 +277,25 @@ then
   . $HOME/$dbUniqueName.env
   envOk=Y
 fi
-
-
+  
+  
 [ "$envOk" = "N" ] && die "Unable to set environment for $dbUniqueName"
 
-f=$(sqlplus -s / as sysdba <<%%
-set feed off heading off pages 0 feedback off
-whenever sqlerror exit failure
-alter session set container=$pdbName ;
-select to_char(sysdate,'yyyymmdd_hh24miss') || '_' || lower(d.name) || '_' 
-                      || replace(sys_context('USERENV','CON_NAME'),'$','_') 
-from dual,v\$database d ;
-%%
-) || die "Error getting the file name from database"
+ext=$(echo $fullName | sed -e "s;.*\.\([^\.]*\);\1;" | tr [a-z] [A-Z])
 
-outputFile=/tmp/$(basename $fullName .sql)_$f.$outputType
-spoolOnCommand="spool $outputFile"
-spoolOffCommand="spool off"
+case $ext in
+  SQL) runSQL ;;
+  SH) runShell ;;
+  *) die "Script Type ($ext) unknown" ;;
+esac
 
-if [ "$outputType" = "html" ]
+
+echo
+if [    "$screenOutputOnly" = "N"               -a "$bucketName" != "" \
+     -a "$(basename $fullName)" != "help.sh"   -a "$DO_NOT_SEND_OUTPUT" != "Y" \
+     -a "$(basename $fullName)" != "sendBucket.sh" ]
 then
-  termoutCommand="set term off"
-  sqlplusFormatCommand="set markup HTML ON 
-set feed off"
-fi
-
-tmpSQLScript=/tmp/$$.tmp.sql
-echo "
-whenever sqlerror exit failure
-whenever oserror exit failure
-set feedback off
-alter session set container=$pdbName ;
-
-set term off
-set feed off
-set verify off
-column 1 new_value 1 
-column 2 new_value 2 
-column 3 new_value 3 
-column 4 new_value 4 
-column 5 new_value 5 
-column 6 new_value 6 
-column 7 new_value 7 
-column 8 new_value 8 
-column 9 new_value 9 
-
-select '' \"1\", '' \"2\", '' \"3\", '' \"4\",'' \"5\", '' \"6\", '' \"7\", '' \"8\",'' \"9\" from dual where 1=2 ;
-set term on feed on lines 2000 trimout on pages 50000
-
-
-$termoutCommand
-$sqlplusFormatCommand
-$spoolOnCommand
-$(curl -sL $fullName)
-$spoolOffCommand
-exit
-" > $tmpSQLScript
-
-echo
-echo "Running the script : $fullName"
-echo "=================="
-echo
-sqlplus -s / as sysdba @$tmpSQLScript $scriptParameters || { rm -f $tmpSQLScript ; die "Error executing the script" ; }
-rm -f $tmpSQLScript
-
-echo
-if [ "$screenOutputOnly" = "N" ]
-then
-  echo "Send Output"
+  echo "Send Output (you can export DO_NOT_SEND_OUTPUT=Y to never send output)"
   echo "==========="
   echo "    - Sending $outputFile to Object Storage"
   echo
