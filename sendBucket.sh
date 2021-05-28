@@ -6,6 +6,7 @@ bucketName=
 usage() {
  echo "Usage :
  $SCRIPT [-?] files
+   -b bucket    : use another bucket
    -?           : Help
    scriptParams : Parameters of the script (try HELP)
 
@@ -21,14 +22,13 @@ die()
 
 SCRIPT=sendBucket.sh
 
-toShift=0
 while getopts "h?" opt
 do
   case $opt in
+    b) bucketName=$OPTARG ; shift ;;
     ?|h) shift ; usage ;;
   esac
 done
-shift $toShift
 
 
 [ "$1" = "" ] && die "No file to send"
