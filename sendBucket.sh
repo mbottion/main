@@ -1,5 +1,4 @@
 #!/bin/bash
-
 # ================== Start generic Variables (do not remove or change this line)==================
 bucketName=
 # ================== End generic Variables (do not remove or change this line) ==================
@@ -21,8 +20,7 @@ die()
 }
 
 SCRIPT=sendBucket.sh
-
-while getopts "h?" opt
+while getopts ":b:h?" opt
 do
   case $opt in
     b) bucketName=$OPTARG ; shift 2 ;;
