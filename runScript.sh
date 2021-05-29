@@ -102,6 +102,7 @@ runShell()
 
 runSQL()
 {
+
   
   f=$(sqlplus -s / as sysdba <<%%
   set feed off heading off pages 0 feedback off
@@ -213,9 +214,11 @@ then
   [ "$1" = "sendBucket.sh" ] && extraParameters="-b $bucketName"
 elif [ "$1" = "help.sh" ]
 then
+  echo "  - Help"
   fullName="$gitHub/main/main/$1"
-elif [ "sendBucket.sh" ]
+elif [ "$1" = "sendBucket.sh" ]
 then
+  echo "  - sendBucket.sh (remote)"
   fullName="$gitHub/main/main/$1"
   extraParameters="-b $bucketName"
 elif [ "$(echo ${1^^} | cut -c 1-4)" = "HTTP" ]
