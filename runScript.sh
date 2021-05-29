@@ -255,10 +255,9 @@ fi
 shift
 
 scriptParameters="$extraParameters"
-while [ "$1" != "" ]
+for p in "$@"
 do
-  scriptParameters="$scriptParameters \"$1\""
-  shift
+  scriptParameters="$scriptParameters \"$p\""
 done
 
 if  [ "$getScriptOnly" = "Y" ]
