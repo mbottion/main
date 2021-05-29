@@ -149,9 +149,12 @@ runSQL()
   set term on feed on lines 2000 trimout on pages 50000
 
 
+  define output_format="$outputType"
+
   $termoutCommand
   $sqlplusFormatCommand
   $spoolOnCommand
+  set feedback 10
   $(curl -sL $fullName)
   $spoolOffCommand
   exit
@@ -203,7 +206,7 @@ fi
 [ "$1" = "" ] && die "No script or script code to run"
 
 echo
-echo "Identifying file to run"
+echo "Identifying file to run ($1)"
 echo "======================="
 extraParameters=""
 if [ -f $1 ]
@@ -250,7 +253,13 @@ else
 fi
 
 shift
-scriptParameters="$extraParameters $*"
+
+scriptParameters="$extraParameters"
+while [ "$1" != "" ]
+do
+  scriptParameters="$scriptParameters \"$1\""
+  shift
+done
 
 if  [ "$getScriptOnly" = "Y" ]
 then
