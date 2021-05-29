@@ -112,8 +112,9 @@ runSQL()
                         || replace(sys_context('USERENV','CON_NAME'),'$','_') 
   from dual,v\$database d ;
 %%
-) || die "Error getting the file name from database"
-  
+) || f=$(date +%Y%m%d_%H%M%S)_${ORACLE_SID}
+#) || die "Error getting the file name from database"
+
   outputFile=/tmp/$(basename $fullName .sql)_$f.$outputType
   spoolOnCommand="spool $outputFile"
   spoolOffCommand="spool off"
@@ -126,7 +127,18 @@ runSQL()
   fi
   
   tmpSQLScript=/tmp/$$.tmp.sql
-  echo "
+  if [ "$ORACLE_SID" = "+ASM1" ]
+  then
+    echo "
+whenever sqlerror exit failure
+whenever oserror exit failure
+$spoolOnCommand
+$(curl -sL $fullName)
+$spoolOffCommand
+exit
+ " > $tmpSQLScript
+  else
+    echo "
   whenever sqlerror exit failure
   whenever oserror exit failure
   set feedback off
@@ -158,8 +170,9 @@ runSQL()
   $(curl -sL $fullName)
   $spoolOffCommand
   exit
-  " > $tmpSQLScript
-
+    " > $tmpSQLScript
+  fi
+  
   echo
   echo "Running the script : $fullName"
   echo "=================="
@@ -180,8 +193,8 @@ uploadScriptOnly=N
 while getopts "d:p:Higl?" opt
 do
   case $opt in
-    d) dbUniqueName=prd01exa ; toShift=$(($toShift + 2)) ;;
-    p) pdbName=bna0prd      ; toShift=$(($toShift + 2)) ;;
+    d) dbUniqueName=$OPTARG ; toShift=$(($toShift + 2)) ;;
+    p) pdbName=$OPTARG      ; toShift=$(($toShift + 2)) ;;
     H) outputType=html      ; toShift=$(($toShift + 1)) ;;
     i) screenOutputOnly=Y   ; toShift=$(($toShift + 1)) ;;
     g) getScriptOnly=Y      ; toShift=$(($toShift + 1)) ;;
@@ -276,9 +289,12 @@ then
   then
     echo "    - $dbUniqueName found in oratab, set environment..."
     . oraenv  <<< $dbUniqueName >/dev/null
-    ORACLE_UNQNAME=$ORACLE_SID
-    ORACLE_SID=$(srvctl status database -d $ORACLE_UNQNAME | \
-                     grep -i $(hostname -s) |  cut -f2 -d " ")
+    if [ "$ORACLE_SID" != "+ASM1" ]
+    then
+      ORACLE_UNQNAME=$ORACLE_SID
+      ORACLE_SID=$(srvctl status database -d $ORACLE_UNQNAME | \
+                       grep -i $(hostname -s) |  cut -f2 -d " ")
+    fi
     envOk=Y
   fi
 fi
