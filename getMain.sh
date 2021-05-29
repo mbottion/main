@@ -39,7 +39,7 @@ setupVariable()
     fi
       sed -i "/$END_VARS_TAG/i ${v}=$value" $s
   else
-    sed -i "s;\(^[^#]*\)\(${v} *\)=\([^ \t]*\)\(.*$\);\1\2=$value\4;" $s
+    sed -i "s;\(^ *\)\(${v} *\)=\([^ \t]*\)\(.*$\);\1\2=$value\4;" $s
   fi
   
 }
