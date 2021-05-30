@@ -7,6 +7,9 @@ bucketName=
 gitHubToken=
 gitHubUser=
 # ================== End generic Variables (do not remove or change this line) ==================
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
 usage() {
  echo "Usage :
  $SCRIPT [-?] [-d dbName] [-p pdbName] [-H] [-i] [-g] [-l] {scriptName [scriptParams]}
@@ -22,11 +25,16 @@ usage() {
   "
   exit
 }
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
 die()
 {
-  [ "$1" != "" ] && echo -e "$SCRIPT : Error \n$*"
+  [ "$1" != "" ] && echo -e "\n\n$SCRIPT : Error \n      $*\n\n"
   exit 1
 }
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 scriptExists()
 {
@@ -34,6 +42,13 @@ scriptExists()
   curl -fsL $f >/dev/null 2>&1
   return $?
 }
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+#
+#       Upload a file to gitHub, provided the authentication
+#  token is defined in the corresponding variable
+#
 
 uploadToGitHub ()
 {
@@ -43,10 +58,13 @@ uploadToGitHub ()
   local fs=$(basename $f)
   local gitFile=$gitHub/$r/main/$fs
   local apiFile=https://api.github.com/repos/$gitHubUser/$r/contents/$fs
-  
+
   echo "Send file $f to gitHub"
   if scriptExists $gitFile
   then
+    #
+    #    Get SHA of the existing file
+    #
     echo "  - File Exists in gitHub"
     sha=$(curl -s -X GET $apiFile | grep "sha" | cut -f2 -d: | cut -f2 -d"\"")
     sha_string=" , \"sha\" : \"$sha\""
@@ -64,6 +82,10 @@ uploadToGitHub ()
     echo "    - Removing $var value"
     sed -i "s;^\($var=\).*;\1;" $f.tmp || { rm -f $f.tmp ; die "Error modifying the file" ; }
   done
+
+  #
+  #     Build the JSON to upload
+  #
   local json="
 {\
     \"path\" : \"$fs\" \
@@ -72,7 +94,10 @@ uploadToGitHub ()
    $sha_string
 }"
   rm -f $f.tmp
-    
+ 
+  #
+  #    Upload and commit the file (main branch)
+  #   
   echo -n "  - Sending file --> "
   curl  -s -S -X PUT -w "\nERRORCODE=%{http_code}" -H "Authorization: token $gitHubToken" \
         -d "$json" $apiFile > /tmp/$$.tmp
@@ -90,20 +115,36 @@ uploadToGitHub ()
   
 }
 
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+#
+#    Run a shell script
+# 
+
 runShell()
 {
-  outputFile=/tmp/$(basename $fullName .sh)_$(date +%Y%MD_%h%m%d)_$f.txt
+  outputFile=/tmp/$(basename $fullName .sh)_$(hostname -s)_$(date +%Y%MD_%h%m%d)_$f.txt
   scriptFile=/tmp/$$.sh.tmp
   curl -sL $fullName > $scriptFile
   chmod 700 $scriptFile
-  $scriptFile $scriptParameters
+  $scriptFile $scriptParameters | tee $outputFile
   rm -f $scriptFile
 }
 
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+#
+#     RUn a SQL script (via SQLPlus)
+#
 runSQL()
 {
 
   
+  #
+  #    Try to get DB and PDB names for the filename, if not possible, generate
+  # a name at the shell level (ie: Running against ASM or e non mounted DB
+  #
   f=$(sqlplus -s / as sysdba <<%%
   set feed off heading off pages 0 feedback off
   whenever sqlerror exit failure
@@ -113,14 +154,16 @@ runSQL()
   from dual,v\$database d ;
 %%
 ) || f=$(date +%Y%m%d_%H%M%S)_${ORACLE_SID}
-#) || die "Error getting the file name from database"
 
-  outputFile=/tmp/$(basename $fullName .sql)_$f.$outputType
+  outputFile=/tmp/$(basename $fullName .sql)_$(hostname -s)_$f.$outputType
   spoolOnCommand="spool $outputFile"
   spoolOffCommand="spool off"
   
   if [ "$pdbName" != "" ]
   then
+    #
+    #    If PDB mane is specified, we will change container
+    #
     setContainerCommand="alter session set container=$pdbName ;"
   fi
 
@@ -131,6 +174,14 @@ runSQL()
   set feed off"
   fi
   
+  #
+  #       Generate a temporary script that will
+  #  - put the exception handlers
+  #  - change container
+  #  - set the 9 standards parameters of SQL*Plus, this allows default parameter values
+  #  - run the normal script with its parameters
+  #
+  #
   tmpSQLScript=/tmp/$$.tmp.sql
   echo "
   whenever sqlerror exit failure
@@ -166,7 +217,10 @@ runSQL()
   $spoolOffCommand
   exit
   " > $tmpSQLScript
-  
+ 
+  #
+  #   Run the script
+  # 
   echo
   echo "Running the script : $fullName"
   echo "=================="
@@ -176,41 +230,47 @@ runSQL()
 
 }
 
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
 SCRIPT=runSQL.sh
 
-repositoriesList="SQLTools ASMTools CNAFTools"
-outputType=txt 
-screenOutputOnly=N
-toShift=0
-getScriptOnly=N
-uploadScriptOnly=N
+repositoriesList="SQLTools ASMTools CNAFTools"       # List of common repositories (for those repos, the file name is sufficient to run a file
+outputType=txt                                       # Default output
+screenOutputOnly=N                                   # Controls the sending of the output
+toShift=0                                            # Number of parameters to shift to eliminate the options and keep scripts parameters
+getScriptOnly=N                                      # Get the script to a local file
+uploadScriptOnly=N                                   # Upload to gitHub
 while getopts "d:p:Higl?" opt
 do
   case $opt in
-    d) dbUniqueName=$OPTARG ; toShift=$(($toShift + 2)) ;;
-    p) pdbName=$OPTARG      ; toShift=$(($toShift + 2)) ;;
-    H) outputType=html      ; toShift=$(($toShift + 1)) ;;
-    i) screenOutputOnly=Y   ; toShift=$(($toShift + 1)) ;;
-    g) getScriptOnly=Y      ; toShift=$(($toShift + 1)) ;;
-    l) uploadScriptOnly=Y      ; toShift=$(($toShift + 1)) ;;
+    d) dbUniqueName=$OPTARG ; toShift=$(($toShift + 2)) ;;      # Name of the database (in oratab or $HOME/.env
+    p) pdbName=$OPTARG      ; toShift=$(($toShift + 2)) ;;      # Name of the PDB
+    H) outputType=html      ; toShift=$(($toShift + 1)) ;;      # Switch to HTML output (valid only for SQL)
+    i) screenOutputOnly=Y   ; toShift=$(($toShift + 1)) ;;      # Avoid sending files to OS
+    g) getScriptOnly=Y      ; toShift=$(($toShift + 1)) ;;      # Get the script locally
+    l) uploadScriptOnly=Y   ; toShift=$(($toShift + 1)) ;;      # Send the script to gitHub   
     ?|h) shift ; usage ;;
   esac
 done
 shift $toShift
 
 
-gitHub=https://raw.githubusercontent.com/$gitHubUser
+gitHub=https://raw.githubusercontent.com/$gitHubUser  # gitHub URL 
+
+[ "$1" = "" ] && die "No script or script code to run"
 
 if  [ "$uploadScriptOnly" = "Y" ]
 then
+  #
+  #    Upload to gitHub and exit
+  #
   [  -f "$1" ] || die "Upload : file: $1 non-existent"
   [  "$2" != "" ] || die "Upload : Repository name needed"
   [  "$gitHubToken" != "" ] || die "Upload : gitHubToken Required"
   uploadToGitHub $1 $2 $gitHubToken
   exit 0
 fi
-
-[ "$1" = "" ] && die "No script or script code to run"
 
 echo
 echo "Identifying file to run ($1)"
@@ -259,19 +319,35 @@ else
   [ "$found" = "N" ] && die "Script $1 not found in specified repositories" 
 fi
 
-shift
-
-scriptParameters="$extraParameters"
-for p in "$@"
-do
-  scriptParameters="$scriptParameters \"$p\""
-done
-
 if  [ "$getScriptOnly" = "Y" ]
 then
+  #
+  #      Download the script and exit
+  #
   curl -fsLO $fullName >/dev/null
   exit 0
 fi
+
+#
+#      Here, we have a script to run
+#
+
+shift
+
+#
+#     Build parameter strings and protect parameters to be able to
+# pass empty or multi-word parameters
+#
+scriptParameters="$extraParameters"
+for p in "$@"
+do
+  if [ "$(echo $p | wc -w)" = "1" ]
+  then
+    scriptParameters="$scriptParameters $p"
+  else
+    scriptParameters="$scriptParameters \"$p\""
+  fi
+done
 
 envOk=N
 echo
@@ -279,12 +355,18 @@ echo "Set the environment"
 echo "==================="
 if  [ -f /etc/oratab ]
 then
+  #
+  #    Check if the DB is in oratab
+  #
   if [ "$(grep "^${dbUniqueName}:" /etc/oratab)" != "" ]
   then
     echo "    - $dbUniqueName found in oratab, set environment..."
     . oraenv  <<< $dbUniqueName >/dev/null
-    if [ "$ORACLE_SID" != "+ASM1" ]
+    if [ "$(echo ${ORACLE_SID^^} | cut -c 1-4)" != "+ASM" ]
     then
+      #
+      #     Reposition ORACLE_SID (for RAC)
+      #
       ORACLE_UNQNAME=$ORACLE_SID
       ORACLE_SID=$(srvctl status database -d $ORACLE_UNQNAME | \
                        grep -i $(hostname -s) |  cut -f2 -d " ")
@@ -294,6 +376,9 @@ then
 fi
 if [ "$envOk" = "N" -a -f "$HOME/$dbUniqueName.env" ]
 then
+  #
+  #    If setup not possible with ORATAB, try to use de $HOME env file.
+  #
   echo "    - Env file found "
   . $HOME/$dbUniqueName.env
   envOk=Y
@@ -301,13 +386,20 @@ fi
   
 if [ "$(echo ${ORACLE_SID^^} | cut -c 1-4)" = "+ASM" ]
 then
-  pdbName=""
+  #
+  #     If DB is ASM, remove the PDB Name, leave the line as-is
+  #  otherwise getMain.sh will modify it
+  #
+  : ; pdbName="" # Do not change this line, otherwise, it is changed by getMain.sh
 fi
   
 [ "$envOk" = "N" ] && die "Unable to set environment for $dbUniqueName"
 
-ext=$(echo $fullName | sed -e "s;.*\.\([^\.]*\);\1;" | tr [a-z] [A-Z])
 
+#
+#      Call the run routine depending on the script's extension
+#
+ext=$(echo $fullName | sed -e "s;.*\.\([^\.]*\);\1;" | tr [a-z] [A-Z])
 case $ext in
   SQL) runSQL ;;
   SH) runShell ;;
@@ -315,6 +407,9 @@ case $ext in
 esac
 
 
+#
+#     Send the output to object storage if possible.
+#
 echo
 if [    "$screenOutputOnly" = "N"               -a "$bucketName" != "" \
      -a "$(basename $fullName)" != "help.sh"   -a "$DO_NOT_SEND_OUTPUT" != "Y" \
