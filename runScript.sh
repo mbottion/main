@@ -119,6 +119,11 @@ runSQL()
   spoolOnCommand="spool $outputFile"
   spoolOffCommand="spool off"
   
+  if [ "$pdbName" != "" ]
+  then
+    setContainerCommand="alter session set container=$pdbName ;"
+  fi
+
   if [ "$outputType" = "html" ]
   then
     termoutCommand="set term off"
@@ -127,22 +132,12 @@ runSQL()
   fi
   
   tmpSQLScript=/tmp/$$.tmp.sql
-  if [ "$ORACLE_SID" = "+ASM1" ]
-  then
-    echo "
-whenever sqlerror exit failure
-whenever oserror exit failure
-$spoolOnCommand
-$(curl -sL $fullName)
-$spoolOffCommand
-exit
- " > $tmpSQLScript
-  else
-    echo "
+  echo "
   whenever sqlerror exit failure
   whenever oserror exit failure
   set feedback off
-  alter session set container=$pdbName ;
+  
+  $setContainerCommand
   
   set term off
   set feed off
@@ -170,8 +165,7 @@ exit
   $(curl -sL $fullName)
   $spoolOffCommand
   exit
-    " > $tmpSQLScript
-  fi
+  " > $tmpSQLScript
   
   echo
   echo "Running the script : $fullName"
@@ -305,6 +299,10 @@ then
   envOk=Y
 fi
   
+if [ "$(echo ${ORACLE_SID^^} | cut -c 1-4)" = "+ASM" ]
+then
+  pdbName=""
+fi
   
 [ "$envOk" = "N" ] && die "Unable to set environment for $dbUniqueName"
 
