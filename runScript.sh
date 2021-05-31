@@ -194,6 +194,9 @@ runSQL()
   set term off
   set feed off
   set verify off
+  set tab off
+  set trimspool on
+  set trimout on
   column 1 new_value 1 
   column 2 new_value 2 
   column 3 new_value 3 
