@@ -6,26 +6,25 @@ List of available scripts
 Repositories:
 
    - main - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-     - help.sh                     : This help
-     - sendBucket.sh               : Send a file to the bucket
+     - help.sh                      : This help
+     - sendBucket.sh                : Send a file to the bucket
 
    - SQLTools - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-     - tbsUsage.sql                : Ocupation of tablespaces
-     - fkWithoutIndexes.sql        : Find non-indexed foreign keys
-     - sessionsPerService.sql      : Services used 
-     - rmanProgress.sql            : Progress of RMAN jobs (WIP)
+     - tbsUsage.sql                 : Ocupation of tablespaces
+     - fkWithoutIndexes.sql         : Find non-indexed foreign keys
+     - sessionsPerService.sql       : Services used 
+     - rmanProgress.sql             : Progress of RMAN jobs (WIP)
 
    - ASMTools - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-     - disksPerCell.sql            : Disks per cell (useful during patching)
-     - ASMMap.sql                  : Shows disk groups contents and size
+     - disksPerCell.sql             : Disks per cell (useful during patching)
+     - ASMMap.sql                   : Shows disk groups cnts a   :d size
 
    - CNAFTools  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-     - heatMapOPA.sql              : Map of OPA processing times + Network (numbers)
-     - heatMapOPAPct.sql           : Map of OPA processing times + Network (percentages)
-     - heatMapOPAProcessing.sql    : Map of OPA processing times (numbers)
-     - heatMapOPAProcessingPct.sql : Map of OPA processing times (percentages)
-     - OPABatchProgress.sql        : Shows number of cases and error rate (globally or per hour)
-     - analyseHISTO.sql            : Lists tables with HISTOGRAMS
+     - heatMapOPAGlobalTime.sql     : Map of OPA processing times (including network VALUES & PERCENTAGES)
+     - heatMapOPAProcessingTime.sql : Map of OPA processing times (without network VALUES & PERCENTAGES)
+     - heatMapOPASizeIn.sql         : Map of OPA packets size (to OPA VALUES & PERCENTAGES)
+     - OPABatchProgress.sql         : Shows number of cases and error rate (globally or per hour)
+     - analyseHISTO.sql             : Lists tables with HISTOGRAMS
    -  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 Usage:
