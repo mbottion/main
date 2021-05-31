@@ -1,5 +1,5 @@
 echo "<HTML><BODY>"
-for engine in AnalyseRessources ExamenDroitAL CalculBaseRessource %
+for engine in AnalyseRessources ExamenDroitAL CalculBaseRessources %
 do
 echo -e "\
 01/01/2021;15/04/2021;$engine
