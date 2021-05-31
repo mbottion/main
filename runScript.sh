@@ -18,6 +18,7 @@ usage() {
    -i           : screen output only
    -g           : get script
    -l           : Upload script to gitHub
+   -s           : Prints nothing but the result (and errors)
    scriptName   : Single file name / partial path / fullPath 
    scriptParams : Parameters of the script (try HELP)
 
@@ -59,27 +60,27 @@ uploadToGitHub ()
   local gitFile=$gitHub/$r/main/$fs
   local apiFile=https://api.github.com/repos/$gitHubUser/$r/contents/$fs
 
-  echo "Send file $f to gitHub"
+  [ "$silent" = "Y" ] || echo "Send file $f to gitHub"
   if scriptExists $gitFile
   then
     #
     #    Get SHA of the existing file
     #
-    echo "  - File Exists in gitHub"
+    [ "$silent" = "Y" ] || echo "  - File Exists in gitHub"
     sha=$(curl -s -X GET $apiFile | grep "sha" | cut -f2 -d: | cut -f2 -d"\"")
     sha_string=" , \"sha\" : \"$sha\""
   else
-    echo "  - New file in gitHub"
+    [ "$silent" = "Y" ] || echo "  - New file in gitHub"
     sha_string=""
   fi
   #
   #  Clean-up file (avoid posting personal information or token)
   #
-  echo "  - Cleaning file"
+  [ "$silent" = "Y" ] || echo "  - Cleaning file"
   cp -p $f $f.tmp
   for var in dbUniqueName pdbName bucketName gitHubToken gitHubUser
   do
-    echo "    - Removing $var value"
+    [ "$silent" = "Y" ] || echo "    - Removing $var value"
     sed -i "s;^\($var=\).*;\1;" $f.tmp || { rm -f $f.tmp ; die "Error modifying the file" ; }
   done
 
@@ -98,7 +99,7 @@ uploadToGitHub ()
   #
   #    Upload and commit the file (main branch)
   #   
-  echo -n "  - Sending file --> "
+  [ "$silent" = "Y" ] || echo -n "  - Sending file --> "
   curl  -s -S -X PUT -w "\nERRORCODE=%{http_code}" -H "Authorization: token $gitHubToken" \
         -d "$json" $apiFile > /tmp/$$.tmp
   errCode=$(grep ERRORCODE /tmp/$$.tmp | cut -f2 -d"=")
@@ -109,7 +110,7 @@ uploadToGitHub ()
     rm -f /tmp/$$.tmp
     die "Unable to load the file (http Error : $errCode)"
   else
-    echo "Ok"
+    [ "$silent" = "Y" ] || echo "Ok"
   fi
   rm -f /tmp/$$.tmp
   
@@ -221,10 +222,10 @@ runSQL()
   #
   #   Run the script
   # 
-  echo
-  echo "Running the script : $fullName"
-  echo "=================="
-  echo
+  [ "$silent" = "Y" ] || echo
+  [ "$silent" = "Y" ] || echo "Running the script : $fullName"
+  [ "$silent" = "Y" ] || echo "=================="
+  [ "$silent" = "Y" ] || echo
   sqlplus -s / as sysdba @$tmpSQLScript $scriptParameters || { rm -f $tmpSQLScript ; die "Error executing the script" ; }
   rm -f $tmpSQLScript
 
@@ -241,7 +242,8 @@ screenOutputOnly=N                                   # Controls the sending of t
 toShift=0                                            # Number of parameters to shift to eliminate the options and keep scripts parameters
 getScriptOnly=N                                      # Get the script to a local file
 uploadScriptOnly=N                                   # Upload to gitHub
-while getopts "d:p:Higl?" opt
+silent=N
+while getopts "d:p:Higsl?" opt
 do
   case $opt in
     d) dbUniqueName=$OPTARG ; toShift=$(($toShift + 2)) ;;      # Name of the database (in oratab or $HOME/.env
@@ -250,6 +252,7 @@ do
     i) screenOutputOnly=Y   ; toShift=$(($toShift + 1)) ;;      # Avoid sending files to OS
     g) getScriptOnly=Y      ; toShift=$(($toShift + 1)) ;;      # Get the script locally
     l) uploadScriptOnly=Y   ; toShift=$(($toShift + 1)) ;;      # Send the script to gitHub   
+    s) silent=Y             ; toShift=$(($toShift + 1)) ;;      # Print nothin but the output
     ?|h) shift ; usage ;;
   esac
 done
@@ -272,34 +275,34 @@ then
   exit 0
 fi
 
-echo
-echo "Identifying file to run ($1)"
-echo "======================="
+[ "$silent" = "Y" ] || echo
+[ "$silent" = "Y" ] || echo "Identifying file to run ($1)"
+[ "$silent" = "Y" ] || echo "======================="
 extraParameters=""
 if [ -f $1 ]
 then
-  echo "  - Local file "
+  [ "$silent" = "Y" ] || echo "  - Local file "
   fullName="file://$(readlink -f $1)"
   scriptExists $fullName || die "Unable to access $fullName"
   [ "$1" = "sendBucket.sh" ] && extraParameters="-b $bucketName"
 elif [ "$1" = "help.sh" ]
 then
-  echo "  - Help"
+  [ "$silent" = "Y" ] || echo "  - Help"
   fullName="$gitHub/main/main/$1"
 elif [ "$1" = "sendBucket.sh" ]
 then
-  echo "  - sendBucket.sh (remote)"
+  [ "$silent" = "Y" ] || echo "  - sendBucket.sh (remote)"
   fullName="$gitHub/main/main/$1"
   extraParameters="-b $bucketName"
 elif [ "$(echo ${1^^} | cut -c 1-4)" = "HTTP" ]
 then
-  echo "  - Full gitHub Path"
+  [ "$silent" = "Y" ] || echo "  - Full gitHub Path"
   fullName=$1
   scriptExists $fullName || die "Unable to access $fullName"
 elif [ "$(echo $1 | grep "/")" != "" ]
 then
   nbSlash=$(echo -n $1 | sed -e "s;[^/];;g" | wc -c)
-  echo "  - repo/file or repo/branch/file ($nbSlash /)"
+  [ "$silent" = "Y" ] || echo "  - repo/file or repo/branch/file ($nbSlash /)"
   if [ $nbSlash -eq 1 ]
   then
     fullName=$gitHub/$(dirname $1)/main/$(basename $1)
@@ -308,11 +311,11 @@ then
   fi
   scriptExists $fullName || die "Unable to access $fullName"
 else
-  echo "  - Filename only"
+  [ "$silent" = "Y" ] || echo "  - Filename only"
   found=N
   for r in $repositoriesList
   do
-    echo "    - Searching $1 in $r"
+    [ "$silent" = "Y" ] || echo "    - Searching $1 in $r"
     fullName=$gitHub/$r/main/$1
     scriptExists $fullName && { found=Y ; break ; }
   done
@@ -350,9 +353,9 @@ do
 done
 
 envOk=N
-echo
-echo "Set the environment"
-echo "==================="
+[ "$silent" = "Y" ] || echo
+[ "$silent" = "Y" ] || echo "Set the environment"
+[ "$silent" = "Y" ] || echo "==================="
 if  [ -f /etc/oratab ]
 then
   #
@@ -360,7 +363,7 @@ then
   #
   if [ "$(grep "^${dbUniqueName}:" /etc/oratab)" != "" ]
   then
-    echo "    - $dbUniqueName found in oratab, set environment..."
+    [ "$silent" = "Y" ] || echo "    - $dbUniqueName found in oratab, set environment..."
     . oraenv  <<< $dbUniqueName >/dev/null
     if [ "$(echo ${ORACLE_SID^^} | cut -c 1-4)" != "+ASM" ]
     then
@@ -379,7 +382,7 @@ then
   #
   #    If setup not possible with ORATAB, try to use de $HOME env file.
   #
-  echo "    - Env file found "
+  [ "$silent" = "Y" ] || echo "    - Env file found "
   . $HOME/$dbUniqueName.env
   envOk=Y
 fi
@@ -410,15 +413,15 @@ esac
 #
 #     Send the output to object storage if possible.
 #
-echo
+[ "$silent" = "Y" ] || echo
 if [    "$screenOutputOnly" = "N"               -a "$bucketName" != "" \
      -a "$(basename $fullName)" != "help.sh"   -a "$DO_NOT_SEND_OUTPUT" != "Y" \
      -a "$(basename $fullName)" != "sendBucket.sh" ]
 then
-  echo "Send Output (you can export DO_NOT_SEND_OUTPUT=Y to never send output)"
-  echo "==========="
-  echo "    - Sending $outputFile to Object Storage"
-  echo
+  [ "$silent" = "Y" ] || echo "Send Output (you can export DO_NOT_SEND_OUTPUT=Y to never send output)"
+  [ "$silent" = "Y" ] || echo "==========="
+  [ "$silent" = "Y" ] || echo "    - Sending $outputFile to Object Storage"
+  [ "$silent" = "Y" ] || echo
   curl -T $outputFile $bucketName
 fi
 
