@@ -17,12 +17,15 @@ Repositories:
 
    - ASMTools - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
      - disksPerCell.sql            : Disks per cell (useful during patching)
+     - ASMMap.sql                  : Shows disk groups contents and size
 
    - CNAFTools  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
      - heatMapOPA.sql              : Map of OPA processing times + Network (numbers)
      - heatMapOPAPct.sql           : Map of OPA processing times + Network (percentages)
      - heatMapOPAProcessing.sql    : Map of OPA processing times (numbers)
      - heatMapOPAProcessingPct.sql : Map of OPA processing times (percentages)
+     - OPABatchProgress.sql        : Shows number of cases and error rate (globally or per hour)
+     - analyseHISTO.sql            : Lists tables with HISTOGRAMS
    -  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 Usage:
