@@ -150,6 +150,7 @@ runSQL()
   set feed off heading off pages 0 feedback off
   whenever sqlerror exit failure
   alter session set container=$pdbName ;
+
   select to_char(sysdate,'yyyymmdd_hh24miss') || '_' || lower(d.name) || '_' 
                         || replace(sys_context('USERENV','CON_NAME'),'$','_') 
   from dual,v\$database d ;
@@ -188,6 +189,7 @@ runSQL()
   whenever sqlerror exit failure
   whenever oserror exit failure
   set feedback off
+  alter session set nls_numeric_characters=', ';
   
   $setContainerCommand
   
