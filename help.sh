@@ -23,6 +23,7 @@ Repositories:
      - heatMapOPAGlobalTime.sql     : Map of OPA processing times (including network VALUES & PERCENTAGES)
      - heatMapOPAProcessingTime.sql : Map of OPA processing times (without network VALUES & PERCENTAGES)
      - heatMapOPASizeIn.sql         : Map of OPA packets size (to OPA VALUES & PERCENTAGES)
+     - OPACallsPerMinute.sql        : Extacts OPA Calls/Cases/Response times per interval
      - OPABatchProgress.sql         : Shows number of cases and error rate (globally or per hour)
      - analyseHISTO.sql             : Lists tables with HISTOGRAMS
    -  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
