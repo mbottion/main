@@ -19,6 +19,7 @@ usage() {
    -g           : get script
    -l           : Upload script to gitHub
    -s           : Prints nothing but the result (and errors)
+   -o           : Output prefix
    scriptName   : Single file name / partial path / fullPath 
    scriptParams : Parameters of the script (try HELP)
 
@@ -124,11 +125,11 @@ uploadToGitHub ()
 
 runShell()
 {
-  outputFile=/tmp/$(basename $fullName .sh)_$(hostname -s)_$(date +%Y%MD_%h%m%d)_$f.txt
+  outputFile=/tmp/${outputPrefix}_$(hostname -s)_$(date +%Y%MD_%h%m%d)_$f.txt
   scriptFile=/tmp/$$.sh.tmp
   curl -sL $fullName > $scriptFile
   chmod 700 $scriptFile
-  $scriptFile $scriptParameters | tee $outputFile
+  $scriptFile $scriptParameters 2>&1 | tee $outputFile
   rm -f $scriptFile
 }
 
@@ -157,7 +158,7 @@ runSQL()
 %%
 ) || f=$(date +%Y%m%d_%H%M%S)_${ORACLE_SID}
 
-  outputFile=/tmp/$(basename $fullName .sql)_$(hostname -s)_$f.$outputType
+  outputFile=/tmp/${outputPrefix}_$(hostname -s)_$f.$outputType
   spoolOnCommand="spool $outputFile"
   spoolOffCommand="spool off"
   
@@ -248,7 +249,7 @@ toShift=0                                            # Number of parameters to s
 getScriptOnly=N                                      # Get the script to a local file
 uploadScriptOnly=N                                   # Upload to gitHub
 silent=N
-while getopts "d:p:Higsl?" opt
+while getopts "d:p:Higslo:?" opt
 do
   case $opt in
     d) dbUniqueName=$OPTARG ; toShift=$(($toShift + 2)) ;;      # Name of the database (in oratab or $HOME/.env
@@ -257,6 +258,7 @@ do
     i) screenOutputOnly=Y   ; toShift=$(($toShift + 1)) ;;      # Avoid sending files to OS
     g) getScriptOnly=Y      ; toShift=$(($toShift + 1)) ;;      # Get the script locally
     l) uploadScriptOnly=Y   ; toShift=$(($toShift + 1)) ;;      # Send the script to gitHub   
+    o) outputPrefix=$OPTARG ; toShift=$(($toShift + 2)) ;;      # Prefix Of the output File
     s) silent=Y             ; toShift=$(($toShift + 1)) ;;      # Print nothin but the output
     ?|h) shift ; usage ;;
   esac
@@ -326,6 +328,7 @@ else
   done
   [ "$found" = "N" ] && die "Script $1 not found in specified repositories" 
 fi
+[ "$outputPrefix" = "" ] && outputPrefix=$(basename $fullName | sed -e "s;^\(.*\)\.[^\.]*$;\1;")
 
 if  [ "$getScriptOnly" = "Y" ]
 then
