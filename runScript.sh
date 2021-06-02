@@ -20,10 +20,17 @@ usage() {
    -l           : Upload script to gitHub
    -s           : Prints nothing but the result (and errors)
    -o           : Output prefix
+   --           : Remaining arguments are arguments to pass as is to the called script
    scriptName   : Single file name / partial path / fullPath 
    scriptParams : Parameters of the script (try HELP)
 
-   Download a script from gitHub and run it under sqlplus
+   Download a script from gitHub and run it under sqlplus or shell
+   
+   Note : for shell scripts with '-' options that may interfer with this script, use
+   -- before arguments.
+   
+   $SCRIPT [$SCRIPT's arguments] test.sh -- [test.sh's arguments]
+   
   "
   exit
 }
@@ -249,7 +256,7 @@ toShift=0                                            # Number of parameters to s
 getScriptOnly=N                                      # Get the script to a local file
 uploadScriptOnly=N                                   # Upload to gitHub
 silent=N
-while getopts "d:p:Higslo:?" opt
+while getopts "d:p:Higslo:-?" opt
 do
   case $opt in
     d) dbUniqueName=$OPTARG ; toShift=$(($toShift + 2)) ;;      # Name of the database (in oratab or $HOME/.env
@@ -260,6 +267,7 @@ do
     l) uploadScriptOnly=Y   ; toShift=$(($toShift + 1)) ;;      # Send the script to gitHub   
     o) outputPrefix=$OPTARG ; toShift=$(($toShift + 2)) ;;      # Prefix Of the output File
     s) silent=Y             ; toShift=$(($toShift + 1)) ;;      # Print nothin but the output
+    -) break                                            ;;      # stop Processing arguments
     ?|h) shift ; usage ;;
   esac
 done
@@ -361,51 +369,53 @@ do
 done
 
 envOk=N
-[ "$silent" = "Y" ] || echo
-[ "$silent" = "Y" ] || echo "Set the environment"
-[ "$silent" = "Y" ] || echo "==================="
-if  [ -f /etc/oratab ]
+if [ "$dbUniqueName" != "" ]
 then
-  #
-  #    Check if the DB is in oratab
-  #
-  if [ "$(grep "^${dbUniqueName}:" /etc/oratab)" != "" ]
+  [ "$silent" = "Y" ] || echo
+  [ "$silent" = "Y" ] || echo "Set the environment"
+  [ "$silent" = "Y" ] || echo "==================="
+  if  [ -f /etc/oratab ]
   then
-    [ "$silent" = "Y" ] || echo "    - $dbUniqueName found in oratab, set environment..."
-    . oraenv  <<< $dbUniqueName >/dev/null
-    if [ "$(echo ${ORACLE_SID^^} | cut -c 1-4)" != "+ASM" ]
+    #
+    #    Check if the DB is in oratab
+    #
+    if [ "$(grep "^${dbUniqueName}:" /etc/oratab)" != "" ]
     then
-      #
-      #     Reposition ORACLE_SID (for RAC)
-      #
-      ORACLE_UNQNAME=$ORACLE_SID
-      ORACLE_SID=$(srvctl status database -d $ORACLE_UNQNAME | \
-                       grep -i $(hostname -s) |  cut -f2 -d " ")
+      [ "$silent" = "Y" ] || echo "    - $dbUniqueName found in oratab, set environment..."
+      . oraenv  <<< $dbUniqueName >/dev/null
+      if [ "$(echo ${ORACLE_SID^^} | cut -c 1-4)" != "+ASM" ]
+      then
+        #
+        #     Reposition ORACLE_SID (for RAC)
+        #
+        ORACLE_UNQNAME=$ORACLE_SID
+        ORACLE_SID=$(srvctl status database -d $ORACLE_UNQNAME | \
+                         grep -i $(hostname -s) |  cut -f2 -d " ")
+      fi
+      envOk=Y
     fi
+  fi
+  if [ "$envOk" = "N" -a -f "$HOME/$dbUniqueName.env" ]
+  then
+    #
+    #    If setup not possible with ORATAB, try to use de $HOME env file.
+    #
+    [ "$silent" = "Y" ] || echo "    - Env file found "
+    . $HOME/$dbUniqueName.env
     envOk=Y
   fi
+    
+  if [ "$(echo ${ORACLE_SID^^} | cut -c 1-4)" = "+ASM" ]
+  then
+    #
+    #     If DB is ASM, remove the PDB Name, leave the line as-is
+    #  otherwise getMain.sh will modify it
+    #
+    : ; pdbName="" # Do not change this line, otherwise, it is changed by getMain.sh
+  fi
+    
+  [ "$envOk" = "N" ] && die "Unable to set environment for $dbUniqueName"
 fi
-if [ "$envOk" = "N" -a -f "$HOME/$dbUniqueName.env" ]
-then
-  #
-  #    If setup not possible with ORATAB, try to use de $HOME env file.
-  #
-  [ "$silent" = "Y" ] || echo "    - Env file found "
-  . $HOME/$dbUniqueName.env
-  envOk=Y
-fi
-  
-if [ "$(echo ${ORACLE_SID^^} | cut -c 1-4)" = "+ASM" ]
-then
-  #
-  #     If DB is ASM, remove the PDB Name, leave the line as-is
-  #  otherwise getMain.sh will modify it
-  #
-  : ; pdbName="" # Do not change this line, otherwise, it is changed by getMain.sh
-fi
-  
-[ "$envOk" = "N" ] && die "Unable to set environment for $dbUniqueName"
-
 
 #
 #      Call the run routine depending on the script's extension
