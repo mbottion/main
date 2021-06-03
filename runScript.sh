@@ -9,7 +9,61 @@ gitHubUser=
 # ================== End generic Variables (do not remove or change this line) ==================
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
+decryptToken()
+{
+    export GPG_TTY=$(tty)
+    v=$(echo $1 | sed -e "s;@@BASE64TOKEN@@;;")
+    echo -e "$v"| base64 -d | gpg -d 2>/dev/null
+}
+encryptToken()
+{
+      [ ! -d $HOME/.gnupg ] && { mkdir -p $HOME/.gnupg ; chmod 600 $HOME/.gnupg ; }
+      [ ! -f $HOME/.gnupg/gpg-agent.conf ] && { touch $HOME/.gnupg/gpg-agent.conf ; chmod 600 $HOME/.gnupg/gpg-agent.conf ; }
+      sed -i "/^ *default-cache-ttl/d"  $HOME/.gnupg/gpg-agent.conf
+      sed -i "/^ *max-cache-ttl/d" $HOME/.gnupg/gpg-agent.conf
+      echo -e "default-cache-ttl 1\ndefault-cache-ttl 1" >> $HOME/.gnupg/gpg-agent.conf
+      echo RELOADAGENT | gpg-connect-agent >/dev/null 2>&1
+      export GPG_TTY=$(tty)
+      echo "@@BASE64TOKEN@@$(echo "$gitHubToken" | gpg -c | base64 | tr '\n' ' ' | sed -e "s; ;;g")"
+}
+secureToken()
+{
+  local rep
+  if [ "$gitHubToken" = "" ]
+  then
+    return 1
+  elif [ "$(echo $gitHubToken | cut -c 1-4)" = "ghp_" ]
+  then
+    echo 
+    echo
+    read -p "Your token is in clear text, do you want to encrypt it with a password? [Y/n] "  rep
+    [ "$rep" = "" ] && rep=Y
+    if [ "${rep^^}" = "Y" ]
+    then
+      encryptedToken=$(encryptToken "$gitHubToken")
+      #[ "$(echo $encryptedToken | grep "BEGIN PGP MESSAGE")" = "" ] && die "Token has not been encrypted" 
+      [ "$(echo $encryptedToken | grep "@@BASE64TOKEN@@")" = "" ] && die "Token has not been encrypted" 
+      echo "#"
+      echo "# ============================================================================"
+      echo "#"
+      echo "#   To replace the unencrypted token by the encrypted one, simply copy/paste"
+      echo "# the following lines in the terminal "
+      echo "#"
+      echo "# ============================================================================"
+      echo "#"
+      echo
+      echo "sed -i \"s;^ *gitHubToken=.*$;gitHubToken=\\\"$encryptedToken\\\";\" $0"
+      echo
+      echo "# ============================================================================"
+      echo "#"
+    else
+      return 2
+    fi
+  elif [ "$(echo $gitHubToken | grep "@@BASE64TOKEN@@")" != "" ]
+  then
+    return 3
+  fi
+}
 usage() {
  echo "Usage :
  $SCRIPT [-?] [-d dbName] [-p pdbName] [-H] [-i] [-g] [-l] {scriptName [scriptParams]}
@@ -68,6 +122,11 @@ uploadToGitHub ()
   local gitFile=$gitHub/$r/main/$fs
   local apiFile=https://api.github.com/repos/$gitHubUser/$r/contents/$fs
 
+  if [ "$gitHubTokenState" = "ENCRYPTED" ]
+  then
+    gitHubToken=$(decryptToken "$gitHubToken") || die "Unable to decrypt Token"
+  fi
+  [ "$(echo $gitHubToken| cut -c1-4)" != "ghp_" ] && die "Invalid gitHub Token ($gitHubToken)"
   [ "$silent" = "Y" ] || echo "Send file $f to gitHub"
   if scriptExists $gitFile
   then
@@ -248,6 +307,20 @@ runSQL()
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 SCRIPT=runSQL.sh
+
+#
+#   Check if token is in clear text
+#   Returns :
+#           1 - No token
+#           2 - Clear text Token 
+#           3 - Encrypted token
+secureToken
+case $? in
+  1) gitHubTokenState="NONE" ;;
+  2) gitHubTokenState="CLEAR" ;;
+  3) gitHubTokenState="ENCRYPTED" ;;
+  *) die "Unable to determine token encryption state" ;;
+esac
 
 repositoriesList="SQLTools ASMTools CNAFTools"       # List of common repositories (for those repos, the file name is sufficient to run a file
 outputType=txt                                       # Default output
