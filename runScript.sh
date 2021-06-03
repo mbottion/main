@@ -36,12 +36,12 @@ secureToken()
   then
     echo 
     echo
-    read -p "Your token is in clear text, do you want to encrypt it with a password? [Y/n] "  rep
-    [ "$rep" = "" ] && rep=Y
+#    read -p "Your token is in clear text, do you want to encrypt it with a password? [Y/n] "  rep
+#    [ "$rep" = "" ] && rep=Y
+    rep=N
     if [ "${rep^^}" = "Y" ]
     then
       encryptedToken=$(encryptToken "$gitHubToken")
-      #[ "$(echo $encryptedToken | grep "BEGIN PGP MESSAGE")" = "" ] && die "Token has not been encrypted" 
       [ "$(echo $encryptedToken | grep "@@BASE64TOKEN@@")" = "" ] && die "Token has not been encrypted" 
       echo "#"
       echo "# ============================================================================"
