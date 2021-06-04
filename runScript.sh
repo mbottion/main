@@ -11,20 +11,12 @@ gitHubUser=
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 decryptToken()
 {
-    export GPG_TTY=$(tty)
     v=$(echo $1 | sed -e "s;@@BASE64TOKEN@@;;")
-    echo -e "$v"| base64 -d | gpg -d 2>/dev/null
+    echo -e "$v"| base64 -d | gpg --batch --passphrase "$2" -d 2>/dev/null
 }
 encryptToken()
 {
-      [ ! -d $HOME/.gnupg ] && { mkdir -p $HOME/.gnupg ; chmod 600 $HOME/.gnupg ; }
-      [ ! -f $HOME/.gnupg/gpg-agent.conf ] && { touch $HOME/.gnupg/gpg-agent.conf ; chmod 600 $HOME/.gnupg/gpg-agent.conf ; }
-      sed -i "/^ *default-cache-ttl/d"  $HOME/.gnupg/gpg-agent.conf
-      sed -i "/^ *max-cache-ttl/d" $HOME/.gnupg/gpg-agent.conf
-      echo -e "default-cache-ttl 1\ndefault-cache-ttl 1" >> $HOME/.gnupg/gpg-agent.conf
-      echo RELOADAGENT | gpg-connect-agent >/dev/null 2>&1
-      export GPG_TTY=$(tty)
-      echo "@@BASE64TOKEN@@$(echo "$gitHubToken" | gpg -c | base64 | tr '\n' ' ' | sed -e "s; ;;g")"
+      echo "@@BASE64TOKEN@@$(echo "$gitHubToken" | gpg --batch --passphrase "$2" -c | base64 | tr '\n' ' ' | sed -e "s; ;;g")"
 }
 secureToken()
 {
@@ -36,12 +28,24 @@ secureToken()
   then
     echo 
     echo
-#    read -p "Your token is in clear text, do you want to encrypt it with a password? [Y/n] "  rep
-#    [ "$rep" = "" ] && rep=Y
-    rep=N
+    read -p "Your token is in clear text, do you want to encrypt it with a password? [Y/n] "  rep
+    [ "$rep" = "" ] && rep=Y
     if [ "${rep^^}" = "Y" ]
     then
-      encryptedToken=$(encryptToken "$gitHubToken")
+      echo "
+
+      Your token will be encrypted using a personal password 
+
+      "
+      read -s -p "Please enter a password to encrypt the key : " pass1
+      echo
+      echo
+      read -s -p "             Enter the same password again : " pass2 
+      echo
+      echo
+      [ "$pass1" != "$pass2" ] && die "Passwords don't match"
+      encryptedToken=$(encryptToken "$gitHubToken" "$pass1")
+      #[ "$(echo $encryptedToken | grep "BEGIN PGP MESSAGE")" = "" ] && die "Token has not been encrypted" 
       [ "$(echo $encryptedToken | grep "@@BASE64TOKEN@@")" = "" ] && die "Token has not been encrypted" 
       echo "#"
       echo "# ============================================================================"
@@ -124,7 +128,10 @@ uploadToGitHub ()
 
   if [ "$gitHubTokenState" = "ENCRYPTED" ]
   then
-    gitHubToken=$(decryptToken "$gitHubToken") || die "Unable to decrypt Token"
+    read -s -p "Enter the password for the token : " pass
+    echo
+    : ; gitHubToken=$(decryptToken "$gitHubToken" $pass) || die "Unable to decrypt Token"
+echo $gitHubToken
   fi
   [ "$(echo $gitHubToken| cut -c1-4)" != "ghp_" ] && die "Invalid gitHub Token ($gitHubToken)"
   [ "$silent" = "Y" ] || echo "Send file $f to gitHub"
