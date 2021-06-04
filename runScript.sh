@@ -131,7 +131,6 @@ uploadToGitHub ()
     read -s -p "Enter the password for the token : " pass
     echo
     : ; gitHubToken=$(decryptToken "$gitHubToken" $pass) || die "Unable to decrypt Token"
-echo $gitHubToken
   fi
   [ "$(echo $gitHubToken| cut -c1-4)" != "ghp_" ] && die "Invalid gitHub Token ($gitHubToken)"
   [ "$silent" = "Y" ] || echo "Send file $f to gitHub"
