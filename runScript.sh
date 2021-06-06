@@ -56,7 +56,9 @@ secureToken()
       echo "# ============================================================================"
       echo "#"
       echo
-      echo "sed -i \"s;^ *gitHubToken=.*$;gitHubToken=\\\"$encryptedToken\\\";\" $0"
+      echo "sed -i \"s;^ *gitHubToken=.*$;gitHubToken=\\\"\\"
+      echo "$(echo $encryptedToken|fold -c20 | sed -e "s;$;\\\\;")"
+      echo "\\\";\" $0"
       echo
       echo "# ============================================================================"
       echo "#"
