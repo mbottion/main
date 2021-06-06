@@ -513,9 +513,9 @@ esac
 #     Send the output to object storage if possible.
 #
 [ "$silent" = "Y" ] || echo
-if [    "$screenOutputOnly" = "N"               -a "$bucketName" != "" \
-     -a "$(basename $fullName)" != "help.sh"   -a "$DO_NOT_SEND_OUTPUT" != "Y" \
-     -a "$(basename $fullName)" != "sendBucket.sh" ]
+if [    "$screenOutputOnly" = "N"                  -a "$bucketName" != "" \
+     -a "$(basename $fullName)" != "help.sh"       -a "$DO_NOT_SEND_OUTPUT" != "Y" \
+     -a "$(basename $fullName)" != "sendBucket.sh" -a "$(basename $fullName)" != "getPass.sh" ]
 then
   [ "$silent" = "Y" ] || echo "Send Output (you can export DO_NOT_SEND_OUTPUT=Y to never send output)"
   [ "$silent" = "Y" ] || echo "==========="
