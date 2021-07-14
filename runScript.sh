@@ -199,7 +199,7 @@ uploadToGitHub ()
 
 runShell()
 {
-  outputFile=/tmp/${outputPrefix}_$(hostname -s)_$(date +%Y%MD_%h%m%d)_$f.txt
+  outputFile=/tmp/${outputPrefix}_$(hostname -s)_$(date +%Y%m%d_%H%M%S)_$f.txt
   scriptFile=/tmp/$$.sh.tmp
   curl -sL $fullName > $scriptFile
   chmod 700 $scriptFile
@@ -348,7 +348,7 @@ do
     l) uploadScriptOnly=Y   ; toShift=$(($toShift + 1)) ;;      # Send the script to gitHub   
     o) outputPrefix=$OPTARG ; toShift=$(($toShift + 2)) ;;      # Prefix Of the output File
     s) silent=Y             ; toShift=$(($toShift + 1)) ;;      # Print nothin but the output
-    -) break                                            ;;      # stop Processing arguments
+    -) break                ; toShift=$(($toShift + 1)) ;;      # stop Processing arguments
     ?|h) shift ; usage ;;
   esac
 done
