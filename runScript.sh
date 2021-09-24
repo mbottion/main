@@ -337,7 +337,7 @@ toShift=0                                            # Number of parameters to s
 getScriptOnly=N                                      # Get the script to a local file
 uploadScriptOnly=N                                   # Upload to gitHub
 silent=N
-while getopts "d:p:Higslo:-?" opt
+while getopts "d:p:Higslo:n-?" opt
 do
   case $opt in
     d) dbUniqueName=$OPTARG ; toShift=$(($toShift + 2)) ;;      # Name of the database (in oratab or $HOME/.env
@@ -348,6 +348,7 @@ do
     l) uploadScriptOnly=Y   ; toShift=$(($toShift + 1)) ;;      # Send the script to gitHub   
     o) outputPrefix=$OPTARG ; toShift=$(($toShift + 2)) ;;      # Prefix Of the output File
     s) silent=Y             ; toShift=$(($toShift + 1)) ;;      # Print nothin but the output
+    n) paRequest=N          ; toShift=$(($toShift + 1)) ;;      # Do not create pre-auth request
     -) break                ; toShift=$(($toShift + 1)) ;;      # stop Processing arguments
     ?|h) shift ; usage ;;
   esac
@@ -527,25 +528,27 @@ then
   OCICONFIG=$(dirname $scriptFile)/.oci/config
   test -f $OCICONFIG || OCICLI=""
   f=$(basename $outputFile)
-  if [ "$OCICLI" != "" ]
+  if [ "$paRequest" != "N" ]
   then
-    echo "    - Generating Pre-authenticated Request ...."
-    expireDate=$(date -d "Tomorrow" "+%Y-%m-%dT%H:%M:%SZ")
-    result=$($OCICLI os preauth-request create --config-file $OCICONFIG --access-type ObjectRead --bucket-name MBO --object-name $f --time-expires $expireDate --name $f)
-    if [ $? -eq 0 ]
+    if [ "$OCICLI" != "" ]
     then
-      accessURI=$(echo "$result" | grep access-uri | cut -f2 -d":"| cut -f2 -d "\"")
-      echo "    - File can be downloaded with "
-      echo
-      echo "curl -O https://objectstorage.eu-frankfurt-1.oraclecloud.com$accessURI"  | fold -w 90 | sed -e "s;$;\\\\;" | sed -e "$ s;\\\\$;;"
-      echo
+      echo "    - Generating Pre-authenticated Request ...."
+      expireDate=$(date -d "Tomorrow" "+%Y-%m-%dT%H:%M:%SZ")
+      result=$($OCICLI os preauth-request create --config-file $OCICONFIG --access-type ObjectRead --bucket-name MBO --object-name $f --time-expires $expireDate --name $f)
+      if [ $? -eq 0 ]
+      then
+        accessURI=$(echo "$result" | grep access-uri | cut -f2 -d":"| cut -f2 -d "\"")
+        echo "    - File can be downloaded with "
+        echo
+        echo "curl -O https://objectstorage.eu-frankfurt-1.oraclecloud.com$accessURI"  | fold -w 90 | sed -e "s;$;\\\\;" | sed -e "$ s;\\\\$;;"
+        echo
+      else
+        echo "    - Access URI not generated"
+      fi
     else
-      echo "    - Access URI not generated"
+      die "Unable to find ocicli or config file ($OCICONFIG)"
     fi
-  else
-    die "Unable to find ocicli or config file ($OCICONFIG)"
-  fi
-    
+  fi  
 fi
 
 rm -f $outputFile
