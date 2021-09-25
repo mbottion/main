@@ -80,6 +80,7 @@ usage() {
    -l           : Upload script to gitHub
    -s           : Prints nothing but the result (and errors)
    -o           : Output prefix
+   -n           : Do not generate Pre-authenticated requesl fo the output
    --           : Remaining arguments are arguments to pass as is to the called script
    scriptName   : Single file name / partial path / fullPath 
    scriptParams : Parameters of the script (try HELP)
@@ -358,6 +359,14 @@ shift $toShift
 
 gitHub=https://raw.githubusercontent.com/$gitHubUser  # gitHub URL 
 
+OCICLI=""
+testFile="/admindb/ocicli/bin/oci" ; test -f $testFile && OCICLI=$testFile
+scriptFile=$(readlink -f $0)
+OCICONFIG=$(dirname $scriptFile)/.oci/config
+test -f $OCICONFIG || OCICLI=""
+OCI_VAR_OK=Y
+export OCICLI OCICONFIG OCI_VAR_OK
+
 [ "$1" = "" ] && die "No script or script code to run"
 
 if  [ "$uploadScriptOnly" = "Y" ]
@@ -522,11 +531,6 @@ then
   [ "$silent" = "Y" ] || echo "==========="
   [ "$silent" = "Y" ] || echo "    - Sending $outputFile to Object Storage"
   curl -T $outputFile $bucketName
-  OCICLI=""
-  testFile="/admindb/ocicli/bin/oci" ; test -f $testFile && OCICLI=$testFile
-  scriptFile=$(readlink -f $0)
-  OCICONFIG=$(dirname $scriptFile)/.oci/config
-  test -f $OCICONFIG || OCICLI=""
   f=$(basename $outputFile)
   if [ "$paRequest" != "N" ]
   then
@@ -550,6 +554,15 @@ then
     fi
   fi  
 fi
+
+echo "
+============================================================================
+Script was run in the following environment :
+   Host           : $(hostname -f)
+   DB Unique Name : $dbName
+   PDB Name       : $pdbName
+============================================================================
+"
 
 rm -f $outputFile
 
