@@ -555,11 +555,11 @@ then
   fi  
 fi
 
-echo "
+[ "$silent" = "Y" ] || echo "
 ============================================================================
 Script was run in the following environment :
    Host           : $(hostname -f)
-   DB Unique Name : $dbName
+   DB Unique Name : $dbUniqueName
    PDB Name       : $pdbName
 ============================================================================
 "
