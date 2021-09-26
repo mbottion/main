@@ -204,7 +204,7 @@ runShell()
   scriptFile=/tmp/$$.sh.tmp
   curl -sL $fullName > $scriptFile
   chmod 700 $scriptFile
-  $scriptFile $scriptParameters 2>&1 | tee $outputFile
+  eval $scriptFile "$scriptParameters" 2>&1 | tee $outputFile
   rm -f $scriptFile
 }
 
