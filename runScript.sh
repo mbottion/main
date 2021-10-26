@@ -80,6 +80,7 @@ usage() {
    -l           : Upload script to gitHub
    -s           : Prints nothing but the result (and errors)
    -o           : Output prefix
+   -O           : Output full name
    -n           : Do not generate Pre-authenticated requesl fo the output
    --           : Remaining arguments are arguments to pass as is to the called script
    scriptName   : Single file name / partial path / fullPath 
@@ -200,7 +201,12 @@ uploadToGitHub ()
 
 runShell()
 {
-  outputFile=/tmp/${outputPrefix}_$(hostname -s)_$(date +%Y%m%d_%H%M%S)_$f.txt
+  if [ "$outputName" = "" ]
+  then
+    outputFile=/tmp/${outputPrefix}_$(hostname -s)_$(date +%Y%m%d_%H%M%S)_$f.txt
+  else
+    outputFile=/tmp/$outputName
+  fi
   scriptFile=/tmp/$$.sh.tmp
   curl -sL $fullName > $scriptFile
   chmod 700 $scriptFile
@@ -233,7 +239,12 @@ runSQL()
 %%
 ) || f=$(date +%Y%m%d_%H%M%S)_${ORACLE_SID}
 
-  outputFile=/tmp/${outputPrefix}_$(hostname -s)_$f.$outputType
+  if [ "$outputName" = "" ]
+  then
+    outputFile=/tmp/${outputPrefix}_$(hostname -s)_$f.$outputType
+  else
+    outputFile=/tmp/$outputName
+  fi
   spoolOnCommand="spool $outputFile"
   spoolOffCommand="spool off"
   
@@ -338,7 +349,7 @@ toShift=0                                            # Number of parameters to s
 getScriptOnly=N                                      # Get the script to a local file
 uploadScriptOnly=N                                   # Upload to gitHub
 silent=N
-while getopts "d:p:Higslo:n-?" opt
+while getopts "d:p:Higslo:O:n-?" opt
 do
   case $opt in
     d) dbUniqueName=$OPTARG ; toShift=$(($toShift + 2)) ;;      # Name of the database (in oratab or $HOME/.env
@@ -348,6 +359,7 @@ do
     g) getScriptOnly=Y      ; toShift=$(($toShift + 1)) ;;      # Get the script locally
     l) uploadScriptOnly=Y   ; toShift=$(($toShift + 1)) ;;      # Send the script to gitHub   
     o) outputPrefix=$OPTARG ; toShift=$(($toShift + 2)) ;;      # Prefix Of the output File
+    O) outputName=$OPTARG   ; toShift=$(($toShift + 2)) ;;      # Name Of the output File
     s) silent=Y             ; toShift=$(($toShift + 1)) ;;      # Print nothin but the output
     n) paRequest=N          ; toShift=$(($toShift + 1)) ;;      # Do not create pre-auth request
     -) break                ; toShift=$(($toShift + 1)) ;;      # stop Processing arguments
