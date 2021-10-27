@@ -82,6 +82,7 @@ usage() {
    -o           : Output prefix
    -O           : Output full name
    -n           : Do not generate Pre-authenticated requesl fo the output
+   -B           : Launch the script in batch (nohup)
    --           : Remaining arguments are arguments to pass as is to the called script
    scriptName   : Single file name / partial path / fullPath 
    scriptParams : Parameters of the script (try HELP)
@@ -349,7 +350,9 @@ toShift=0                                            # Number of parameters to s
 getScriptOnly=N                                      # Get the script to a local file
 uploadScriptOnly=N                                   # Upload to gitHub
 silent=N
-while getopts "d:p:Higslo:O:n-?" opt
+BATCH_MODE=N
+savedArgs="$*"
+while getopts "d:p:Higslo:O:Bn-?" opt
 do
   case $opt in
     d) dbUniqueName=$OPTARG ; toShift=$(($toShift + 2)) ;;      # Name of the database (in oratab or $HOME/.env
@@ -362,6 +365,7 @@ do
     O) outputName=$OPTARG   ; toShift=$(($toShift + 2)) ;;      # Name Of the output File
     s) silent=Y             ; toShift=$(($toShift + 1)) ;;      # Print nothin but the output
     n) paRequest=N          ; toShift=$(($toShift + 1)) ;;      # Do not create pre-auth request
+    B) BATCH_MODE=Y         ; toShift=$(($toShift + 1)) ;;      # Launch in BATCH_MODE
     -) break                ; toShift=$(($toShift + 1)) ;;      # stop Processing arguments
     ?|h) shift ; usage ;;
   esac
@@ -520,6 +524,18 @@ then
   [ "$envOk" = "N" ] && die "Unable to set environment for $dbUniqueName"
 fi
 
+if [ "$BATCH_MODE" = "Y" ]
+then
+  echo "
+
+     BATCH_MODE : the script will be re-launched whith the same arguments 
+                  except -B
+
+       "
+  args=$(echo $savedArgs | sed -e "s;-B *;;")
+  nohup $0 $args >/tmp/runscript.batch.log 2>&1 &
+  exit
+fi
 #
 #      Call the run routine depending on the script's extension
 #
