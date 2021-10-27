@@ -34,4 +34,7 @@ Usage:
   runScript.sh -i [repo/]scriptName    ==> Do not send output
   runScript.sh -H [repo/]scriptName    ==> HTML Output (for SQL ONLY)
 
+To update runScripts : 
+  bash -c \"set runScript ; $(curl -sL https://raw.githubusercontent.com/mbottion/main/main/getMain.sh)\"
+  
 " | more
