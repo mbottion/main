@@ -372,6 +372,14 @@ do
 done
 shift $toShift
 
+if [ "$outputName" != "" ]
+then
+  outputName=$(echo $outputName | sed -e "s;^.*/\([^/]*\)$;\1;")
+  if [ "$(echo $outputName | grep "\.")" = "" ]
+  then
+    outputName=${outputName}.txt
+  fi
+fi
 
 gitHub=https://raw.githubusercontent.com/$gitHubUser  # gitHub URL 
 
@@ -546,8 +554,8 @@ then
   args=$(echo $savedArgs | sed -e "s;-B *;;")
   nohup $0 $args >$TEMP_LOG 2>&1 &
   pid=$!
-  echo " Batch Launched ..... (pid=$pid) monitoring it for ($waitFor) secondes"
-    echo -n "  $pid monitoring --> "
+  echo " Batch Launched ..... (pid=$pid) monitoring it for ($waitFor) seconds"
+    echo -n "  Monitoring $pid process --> "
     i=1
     while [ $i -le $waitFor ]
     do
