@@ -212,7 +212,9 @@ runShell()
   curl -sL $fullName > $scriptFile
   chmod 700 $scriptFile
   eval $scriptFile "$scriptParameters" 2>&1 | tee $outputFile
+  status=$?
   rm -f $scriptFile
+  return $status
 }
 
 
@@ -320,14 +322,15 @@ runSQL()
   [ "$silent" = "Y" ] || echo "=================="
   [ "$silent" = "Y" ] || echo
   sqlplus -s / as sysdba @$tmpSQLScript $scriptParameters || { rm -f $tmpSQLScript ; die "Error executing the script" ; }
+  status=$?
   rm -f $tmpSQLScript
-
+  return $status
 }
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-SCRIPT=runSQL.sh
+SCRIPT=runScript.sh
 
 #
 #   Check if token is in clear text
@@ -535,7 +538,7 @@ fi
 if [ "$BATCH_MODE" = "Y" ]
 then
   export TEMP_LOG=/tmp/runScript.tempLog.$$
-  waitFor=30
+  waitFor=20
   echo "
   +==========================================================================+
   |                                                                          |
@@ -547,7 +550,7 @@ then
       - A temporary log file will be created and removed after the
         bacth execution :
           $TEMP_LOG
-      - After launch, the process is monitored for $waitTime to check
+      - After launch, the process is monitored for $waitFor to check
         correct start
 
        "
