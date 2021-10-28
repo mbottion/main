@@ -526,14 +526,58 @@ fi
 
 if [ "$BATCH_MODE" = "Y" ]
 then
+  export TEMP_LOG=/tmp/runScript.tempLog.$$
+  waitFor=30
   echo "
+  +==========================================================================+
+  |                                                                          |
+  |   BATCH_MODE : the script will be re-launched whith the same arguments   |
+  |                except -B                                                 |
+  |                                                                          |
+  +==========================================================================+
 
-     BATCH_MODE : the script will be re-launched whith the same arguments 
-                  except -B
+      - A temporary log file will be created and removed after the
+        bacth execution :
+          $TEMP_LOG
+      - After launch, the process is monitored for $waitTime to check
+        correct start
 
        "
   args=$(echo $savedArgs | sed -e "s;-B *;;")
-  nohup $0 $args >/tmp/runscript.batch.log 2>&1 &
+  nohup $0 $args >$TEMP_LOG 2>&1 &
+  pid=$!
+  echo " Batch Launched ..... (pid=$pid) monitoring it for ($waitFor) secondes"
+    echo -n "  $pid monitoring --> "
+    i=1
+    while [ $i -le $waitFor ]
+    do
+      sleep 1
+      if ps -p $pid >/dev/null
+      then
+        [ $(($i % 10)) -eq 0 ] && { echo -n "+" ; } || { echo -n "." ; }
+      else
+         if [ -f $TEMP_LOG ]
+         then
+           echo "Process disapear, probable error"
+           echo 
+           echo "      --+--> $TEMP_LOG"
+           tail -20 $TEMP_LOG | sed -e "s;^;        | ;"
+           echo "        +----------------------"
+
+           die "Batch stopped" 
+         else
+           echo " Terminated"
+           i=$waitFor
+         fi
+      fi
+      i=$(($i + 1))
+    done  
+    echo
+    echo
+    echo "+===========================================================================+"
+    echo "| Batch seem to have been launched sucessfully                              |"
+    echo "+===========================================================================+"
+    exit
   exit
 fi
 #
@@ -594,3 +638,8 @@ Script was run in the following environment :
 
 rm -f $outputFile
 
+# Remove temp log (when process is re-launched in Nohup)
+if [ "$TEMP_LOG" != "" ]
+then
+  rm -f $TEMP_LOG
+fi
