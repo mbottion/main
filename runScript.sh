@@ -356,7 +356,7 @@ silent=N
 BATCH_MODE=N
 savedArgs=""
 set -o noglob
-for p in $*
+for p in "$@"
 do
   if [ "$p" = "" ]
   then
