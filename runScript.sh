@@ -321,7 +321,7 @@ runSQL()
   [ "$silent" = "Y" ] || echo "Running the script : $fullName"
   [ "$silent" = "Y" ] || echo "=================="
   [ "$silent" = "Y" ] || echo
-  sqlplus -s / as sysdba @$tmpSQLScript $scriptParameters || { rm -f $tmpSQLScript ; die "Error executing the script" ; }
+  sqlplus -s / as sysdba @$tmpSQLScript $scriptParameters 
   status=$?
   rm -f $tmpSQLScript
   return $status
@@ -354,7 +354,27 @@ getScriptOnly=N                                      # Get the script to a local
 uploadScriptOnly=N                                   # Upload to gitHub
 silent=N
 BATCH_MODE=N
-savedArgs="$*"
+savedArgs=""
+set -o noglob
+for p in $*
+do
+  if [ "$p" = "" ]
+  then
+    savedArgs="$savedArgs \"\""
+  elif [ "$p" = "-B" ]
+  then
+    :
+  elif [ "$(echo "$p" | egrep "\*|\?")" != "" ]
+  then
+    savedArgs="$savedArgs \"$p\""
+  else
+    savedArgs="$savedArgs $p"
+  fi
+done
+set +o noglob
+#echo "args: $savedArgs"
+#exit
+
 while getopts "d:p:Higslo:O:Bn-?" opt
 do
   case $opt in
@@ -567,12 +587,13 @@ then
       then
         [ $(($i % 10)) -eq 0 ] && { echo -n "+" ; } || { echo -n "." ; }
       else
+         sleep 1
          if [ -f $TEMP_LOG ]
          then
            echo "Process disapear, probable error"
            echo 
            echo "      --+--> $TEMP_LOG"
-           tail -20 $TEMP_LOG | sed -e "s;^;        | ;"
+           tail -30 $TEMP_LOG | sed -e "s;^;        | ;"
            echo "        +----------------------"
 
            die "Batch stopped" 
@@ -596,11 +617,20 @@ fi
 #
 ext=$(echo $fullName | sed -e "s;.*\.\([^\.]*\);\1;" | tr [a-z] [A-Z])
 case $ext in
-  SQL) runSQL ;;
-  SH) runShell ;;
+  SQL) runSQL  ; status=$? ;;
+  SH) runShell ; status=$? ;;
   *) die "Script Type ($ext) unknown" ;;
 esac
 
+echo
+if [ "$status" = "0" ]
+then
+  echo "Script executed sucessfully"
+else
+  echo "******* Script has an error"
+  [ "$BATCH_MODE" = "N" ] && die "Abort"
+fi
+echo
 
 #
 #     Send the output to object storage if possible.
