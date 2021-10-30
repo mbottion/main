@@ -627,8 +627,8 @@ if [ "$status" = "0" ]
 then
   echo "Script executed sucessfully"
 else
-  echo "******* Script has an error"
-  [ "$BATCH_MODE" = "N" ] && die "Abort"
+  echo "******* Script had an error"
+  [ "$BATCH_MODE" != "Y" ] && die "Abort (BATCH_MODE=$BATCH_MODE)"
 fi
 echo
 
