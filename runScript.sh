@@ -575,6 +575,7 @@ then
 
        "
   args=$(echo $savedArgs | sed -e "s;-B *;;")
+  export BATCH_LAUNCHED=Y
   nohup $0 $args >$TEMP_LOG 2>&1 &
   pid=$!
   echo " Batch Launched ..... (pid=$pid) monitoring it for ($waitFor) seconds"
@@ -628,7 +629,7 @@ then
   echo "Script executed sucessfully"
 else
   echo "******* Script had an error"
-  [ "$BATCH_MODE" != "Y" ] && die "Abort (BATCH_MODE=$BATCH_MODE)"
+  [ "$BATCH_LAUNCHED" != "Y" ] && die "Abort (BATCH_LAUNCHED=$BATCH_MODE)"
 fi
 echo
 
