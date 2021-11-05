@@ -204,7 +204,7 @@ runShell()
 {
   if [ "$outputName" = "" ]
   then
-    outputFile=/tmp/${outputPrefix}_$(hostname -s)_$(date +%Y%m%d_%H%M%S)_$f.txt
+    outputFile=/tmp/${outputPrefix}_$(hostname -s)_$(date +%Y%m%d_%H%M%S)_$pdbName.txt
   else
     outputFile=/tmp/$outputName
   fi
@@ -232,7 +232,7 @@ runSQL()
   # a name at the shell level (ie: Running against ASM or e non mounted DB
   #
   f=$(sqlplus -s / as sysdba <<%%
-  set feed off heading off pages 0 feedback off
+  set feed off heading off pages 0 feedback off tab off
   whenever sqlerror exit failure
   alter session set container=$pdbName ;
 
@@ -279,7 +279,7 @@ runSQL()
   whenever sqlerror exit failure
   whenever oserror exit failure
   set feedback off
-  alter session set nls_numeric_characters=', ';
+rem  alter session set nls_numeric_characters=', ';
   
   $setContainerCommand
   
@@ -394,6 +394,8 @@ do
   esac
 done
 shift $toShift
+
+export dbUniqueName pdbName
 
 if [ "$outputName" != "" ]
 then
