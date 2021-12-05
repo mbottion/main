@@ -601,7 +601,7 @@ then
 
            die "Batch stopped" 
          else
-           echo " Terminated"
+           echo " Terminated too early?"
            i=$waitFor
          fi
       fi
@@ -628,7 +628,7 @@ esac
 echo
 if [ "$status" = "0" ]
 then
-  echo "Script executed sucessfully"
+  [ "$silent" != "Y" ] && echo "Script executed sucessfully"
 else
   echo "******* Script had an error"
   [ "$BATCH_LAUNCHED" != "Y" ] && die "Abort (BATCH_LAUNCHED=$BATCH_MODE)"
@@ -648,7 +648,7 @@ then
   [ "$silent" = "Y" ] || echo "    - Sending $outputFile to Object Storage"
   curl -T $outputFile $bucketName
   f=$(basename $outputFile)
-  if [ "$paRequest" != "N" ]
+  if [ "$paRequest" != "N" -a "$silent" != "Y" ]
   then
     if [ "$OCICLI" != "" ]
     then
