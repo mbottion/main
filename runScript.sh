@@ -93,6 +93,10 @@ usage() {
    -- before arguments.
    
    $SCRIPT [$SCRIPT's arguments] test.sh -- [test.sh's arguments]
+
+   To update $SCRIPT:
+
+   bash -c \"set runScript ; \$(curl -sL https://raw.githubusercontent.com/mbottion/main/main/getMain.sh)\"
    
   "
   exit
