@@ -368,7 +368,7 @@ do
   elif [ "$p" = "-B" ]
   then
     :
-  elif [ "$(echo "$p" | egrep "\*|\?")" != "" ]
+  elif [ "$(echo "$p" | egrep "\*|\?|\|")" != "" ]
   then
     savedArgs="$savedArgs \"$p\""
   else
