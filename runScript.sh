@@ -57,7 +57,7 @@ secureToken()
       echo "#"
       echo
       echo "sed -i \"s;^ *gitHubToken=.*$;gitHubToken=\\\"\\"
-      echo "$(echo $encryptedToken|fold -c20 | sed -e "s;$;\\\\;")"
+      echo "$(echo $encryptedToken|fold -b50 | sed -e "s;$;\\\\;")"
       echo "\\\";\" $0"
       echo
       echo "# ============================================================================"
@@ -139,7 +139,7 @@ uploadToGitHub ()
   then
     read -s -p "Enter the password for the token : " pass
     echo
-    : ; gitHubToken=$(decryptToken "$gitHubToken" $pass) || die "Unable to decrypt Token"
+    : ; gitHubToken=$(decryptToken "$gitHubToken" $pass) || die "Unable to decrypt Token ($gitHubToken)"
   fi
   [ "$(echo $gitHubToken| cut -c1-4)" != "ghp_" ] && die "Invalid gitHub Token ($gitHubToken)"
   [ "$silent" = "Y" ] || echo "Send file $f to gitHub"
