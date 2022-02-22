@@ -72,12 +72,13 @@ secureToken()
 }
 usage() {
  echo "Usage :
- $SCRIPT [-?] [-d dbName] [-p pdbName] [-H] [-i] [-g] [-l] {scriptName [scriptParams]}
+ $SCRIPT [-?] [-d dbName] [-p pdbName] [-H] [-i] [-g] [-l] [-L] {scriptName [scriptParams]}
    -?           : Help
    -H           : html output
    -i           : screen output only
    -g           : get script
    -l           : Upload script to gitHub
+   -L           : List files in public repositories contents
    -s           : Prints nothing but the result (and errors)
    -o           : Output prefix
    -O           : Output full name
@@ -119,6 +120,44 @@ scriptExists()
   return $?
 }
 
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+#
+#      List public repositories and files. We DO NOT USE JQ since it is not always installed
+#
+#
+listGitHub()
+{
+  repos=$(curl -s https://api.github.com/users/$gitHubUser/repos )
+  if echo "$repos" | grep \"message\" >/dev/null 
+  then
+    echo "$repos" 
+    echo
+    echo "Maybe rate-limit exceeded, try again later"
+    echo "=========================================="
+    echo
+    curl -I  https://api.github.com/users/$gitHubUser
+    exit 1
+  fi  
+  for repo in $(echo "$repos" | grep "\"name\"" | cut -f2 -d ":" | sed -e "s;^ *\";;" -e "s;\".*$;;")
+  do
+    echo "  - Repository : $repo"
+    echo "    =========================="
+    i=1
+    for file in $(curl -s https://api.github.com/repos/$gitHubUser/$repo/contents | grep "\"name\"" | cut -f2 -d ":" | sed -e "s;^ *\";;" -e "s;\".*$;;")
+    do
+      if [ $(($i % 3)) -eq 1 ]
+      then
+        echo
+        echo -n "    - "
+      fi
+      printf "%-35.35s" $file
+      i=$(($i + 1))
+    done
+    echo 
+    echo
+  done
+}
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 #
@@ -379,7 +418,7 @@ set +o noglob
 #echo "args: $savedArgs"
 #exit
 
-while getopts "d:p:Higslo:O:Bn-?" opt
+while getopts "d:p:HigslLo:O:Bn-?" opt
 do
   case $opt in
     d) dbUniqueName=$OPTARG ; toShift=$(($toShift + 2)) ;;      # Name of the database (in oratab or $HOME/.env
@@ -388,6 +427,7 @@ do
     i) screenOutputOnly=Y   ; toShift=$(($toShift + 1)) ;;      # Avoid sending files to OS
     g) getScriptOnly=Y      ; toShift=$(($toShift + 1)) ;;      # Get the script locally
     l) uploadScriptOnly=Y   ; toShift=$(($toShift + 1)) ;;      # Send the script to gitHub   
+    L) listRepos=Y          ; toShift=$(($toShift + 1)) ;;      # List repositories contents   
     o) outputPrefix=$OPTARG ; toShift=$(($toShift + 2)) ;;      # Prefix Of the output File
     O) outputName=$OPTARG   ; toShift=$(($toShift + 2)) ;;      # Name Of the output File
     s) silent=Y             ; toShift=$(($toShift + 1)) ;;      # Print nothin but the output
@@ -420,7 +460,7 @@ test -f $OCICONFIG || OCICLI=""
 OCI_VAR_OK=Y
 export OCICLI OCICONFIG OCI_VAR_OK
 
-[ "$1" = "" ] && die "No script or script code to run"
+[ "$1" = "" -a "$listRepos" != "Y" ] && die "No script or script code to run"
 
 if  [ "$uploadScriptOnly" = "Y" ]
 then
@@ -434,6 +474,11 @@ then
   exit 0
 fi
 
+if [ "$listRepos" = "Y" ]
+then
+  listGitHub
+  exit 0
+fi
 [ "$silent" = "Y" ] || echo
 [ "$silent" = "Y" ] || echo "Identifying file to run ($1)"
 [ "$silent" = "Y" ] || echo "======================="
