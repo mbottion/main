@@ -368,8 +368,12 @@ rem  alter session set nls_numeric_characters=', ';
   #
   # Sqlplus -silent suppresses the echoing of commands, this is quite annoying
   #
-  #sqlplus -s / as sysdba @$tmpSQLScript $scriptParameters 
-  sqlplus  / as sysdba @$tmpSQLScript $scriptParameters | sed -e "1,/Version/ d" -e "1,/Version/ d" -e "/Disconnected/,$ d"
+  if ! grep -i "^ *set.*echo.*on *$" $tmpSQLScript
+  then
+    sqlplus -s / as sysdba @$tmpSQLScript $scriptParameters 
+  else
+    sqlplus  / as sysdba @$tmpSQLScript $scriptParameters 
+  fi
   status=$?
   rm -f $tmpSQLScript
   return $status
