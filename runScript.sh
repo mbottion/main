@@ -332,6 +332,7 @@ rem  alter session set nls_numeric_characters=', ';
   set tab off
   set trimspool on
   set trimout on
+  set sqlprompt \"\"
   column 1 new_value 1 
   column 2 new_value 2 
   column 3 new_value 3 
@@ -364,7 +365,11 @@ rem  alter session set nls_numeric_characters=', ';
   [ "$silent" = "Y" ] || echo "Running the script : $fullName"
   [ "$silent" = "Y" ] || echo "=================="
   [ "$silent" = "Y" ] || echo
-  sqlplus -s / as sysdba @$tmpSQLScript $scriptParameters 
+  #
+  # Sqlplus -silent suppresses the echoing of commands, this is quite annoying
+  #
+  #sqlplus -s / as sysdba @$tmpSQLScript $scriptParameters 
+  sqlplus  / as sysdba @$tmpSQLScript $scriptParameters | sed -e "1,/Version/ d" -e "1,/Version/ d" -e "/Disconnected/,$ d"
   status=$?
   rm -f $tmpSQLScript
   return $status
