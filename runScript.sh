@@ -367,13 +367,9 @@ rem  alter session set nls_numeric_characters=', ';
   [ "$silent" = "Y" ] || echo
   #
   # Sqlplus -silent suppresses the echoing of commands, this is quite annoying
+  # the trick is to use the unbeffered sed (-u) to remove the SQLPLUS banners (works on english)
   #
-  if ! grep -i "^ *set.*echo.*on *$" $tmpSQLScript
-  then
-    sqlplus -s / as sysdba @$tmpSQLScript $scriptParameters 
-  else
-    sqlplus  / as sysdba @$tmpSQLScript $scriptParameters 
-  fi
+  sqlplus  / as sysdba @$tmpSQLScript $scriptParameters  | sed -ue "1,/Connected to:/ d" -e "1,/Version/ d" -e "/Disconnected/,$ d"
   status=$?
   rm -f $tmpSQLScript
   return $status
