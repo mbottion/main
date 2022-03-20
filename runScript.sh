@@ -369,9 +369,9 @@ rem  alter session set nls_numeric_characters=', ';
   # Sqlplus -silent suppresses the echoing of commands, this is quite annoying
   # the trick is to use the unbeffered sed (-u) to remove the SQLPLUS banners (works on english)
   #
-  sqlplus  / as sysdba @$tmpSQLScript $scriptParameters  | sed -ue "1,/Connected to:/ d" -e "1,/Version/ d" -e "/Disconnected/,$ d"
-  status=$?
-  rm -f $tmpSQLScript
+  { sqlplus  / as sysdba @$tmpSQLScript $scriptParameters ; echo $?>$$.status ; } | sed -ue "1,/Connected to:/ d" -e "1,/Version/ d" -e "/Disconnected/ d"
+  status=$(cat $$.status)
+  rm -f $tmpSQLScript $$.status
   return $status
 }
 
@@ -650,7 +650,7 @@ then
            echo "Process disapear, probable error"
            echo 
            echo "      --+--> $TEMP_LOG"
-           tail -30 $TEMP_LOG | sed -e "s;^;        | ;"
+           tail -50 $TEMP_LOG | sed -e "s;^;        | ;"
            echo "        +----------------------"
 
            die "Batch stopped" 
@@ -736,8 +736,8 @@ Script was run in the following environment :
 
 rm -f $outputFile
 
-# Remove temp log (when process is re-launched in Nohup)
+# Remove temp log (when process is re-launched in Nohup) after some seconds
 if [ "$TEMP_LOG" != "" ]
 then
-  rm -f $TEMP_LOG
+  (sleep 10 ; rm -f $TEMP_LOG) &
 fi
