@@ -458,12 +458,22 @@ fi
 gitHub=https://raw.githubusercontent.com/$gitHubUser  # gitHub URL 
 
 OCICLI=""
-testFile="/admindb/ocicli/bin/oci" ; test -f $testFile && OCICLI=$testFile
+if [ -f "/admindb/ocicli/bin/oci" ]
+then
+  OCICLI="/admindb/ocicli/bin/oci"
+elif [ -f "$HOME/bin/oci" ]
+then
+  OCICLI="$HOME/bin/oci"
+fi
 scriptFile=$(readlink -f $0)
-OCICONFIG=$(dirname $scriptFile)/.oci/config
-test -f $OCICONFIG || OCICLI=""
-OCI_VAR_OK=Y
-export OCICLI OCICONFIG OCI_VAR_OK
+if [ -f $(dirname $scriptFile)/.oci/config ]
+then
+  OCICONFIG=$(dirname $scriptFile)/.oci/config
+elif [ -f "$HOME/.oci/config" ]
+then
+  OCICONFIG="$HOME/.oci/config"
+fi
+export OCICLI OCICONFIG 
 
 [ "$1" = "" -a "$listRepos" != "Y" ] && die "No script or script code to run"
 
@@ -720,7 +730,7 @@ then
         echo "    - Access URI not generated"
       fi
     else
-      die "Unable to find ocicli or config file ($OCICONFIG)"
+	    die "Unable to find ocicli ($OCICLI) or config file ($OCICONFIG)"
     fi
   fi  
 fi
