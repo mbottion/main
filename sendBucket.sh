@@ -27,16 +27,27 @@ do
     ?|h) shift ; usage ;;
   esac
 done
-if [ "$OCI_VAR_OK" != "Y" ]
+
+if [ "$OCICLI"="" ]
 then
-  #
-  #    Vars were set-up in the calling Script
-  #
-  OCICLI=""
-  testFile="/admindb/ocicli/bin/oci" ; test -f $testFile && OCICLI=$testFile
+  if [ -f "/admindb/ocicli/bin/oci" ]
+  then
+    OCICLI="/admindb/ocicli/bin/oci"
+  elif [ -f "$HOME/bin/oci" ]
+  then
+    OCICLI="$HOME/bin/oci"
+  fi
+fi
+if [ "$OCICONFIG" = "" ]
+then
   scriptFile=$(readlink -f $0)
-  OCICONFIG=$(dirname $scriptFile)/.oci/config
-  test -f $OCICONFIG || OCICLI=""
+  if [ -f $(dirname $scriptFile)/.oci/config ]
+  then
+    OCICONFIG=$(dirname $scriptFile)/.oci/config
+  elif [ -f "$HOME/.oci/config" ]
+  then
+    OCICONFIG="$HOME/.oci/config"
+  fi
 fi
 
 [ "$1" = "" ] && die "No file to send"
