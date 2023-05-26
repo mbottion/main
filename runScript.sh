@@ -1,14 +1,14 @@
 #!/bin/bash
 
 # ================== Start generic Variables (do not remove or change this line)==================
-dbUniqueName=
-pdbName=
-bucketName=
+dbUniqueName=IFOPAMEC
+pdbName=IFOPAME
+bucketName=${bucketName:-LOCAL_FILE}
 gitHubToken="@@BASE64TOKEN@@jA0ECQMCEaVGroBSrlr/0l4BVlL7mRmbpMmT9hIX8lRu2GWm4SiI1KUSBNU2hxDuQnlaEMK8/B2VTG2YA3d6KdhKIuvgaxmoiqbprAWs2wVUgHxfNJxDx/mFq/FOiWeeAx08ySaKKSza76IxkovA"
 gitHubUser=mbottion
 # =================================================================================================
-#TARFILE_GENERATION_START (keep this comment to allow insertion of tarfile generation function - start)
-#TARFILE_GENERATION_END (keep this comment to allow insertion of tarfile generation function - end)
+#TARFILE_GENERATION_START (keep this comment to allow insertion of tarfile generation function)
+#TARFILE_GENERATION_END (keep this comment to allow insertion of tarfile generation function)
 # ================== End generic Variables (do not remove or change this line) ==================
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -139,6 +139,10 @@ scriptExists()
 #
 listGitHub()
 {
+  if [ "$1" = "GENZIP" ]
+  then
+    [ "$gitHubUser" = "ZIPFILE" ] && die "Unable to generate ZIP file in disconnected mode"
+  fi
   repos=$([ "$gitHubUser" != "ZIPFILE" ] && curl -s https://api.github.com/users/$gitHubUser/repos \
                                          || tar tzf $LOCAL_ZIP | cut -f1 -d "/" | sort -u | sed -e "s;^;\"name\" : ;")
   if echo "$repos" | grep \"message\" >/dev/null 
@@ -151,13 +155,27 @@ listGitHub()
     curl -I  https://api.github.com/users/$gitHubUser
     exit 1
   fi  
+  if [ "$1" = "GENZIP" ]
+  then
+    tmpZipFolder=${TMPDIR:-/tmp}/tmpGitRepos
+    rm -rf $tmpZipFolder
+    echo
+    echo "Generating file for offline usage in $tmpZipFolder"
+    echo
+  fi
   for repo in $(echo "$repos" | grep "\"name\"" | cut -f2 -d ":" | sed -e "s;^ *\";;" -e "s;\".*$;;")
   do
     echo "  - Repository : $repo"
     echo "    =========================="
+    if [ "$1" = "GENZIP" ]
+    then
+      mkdir -p $tmpZipFolder/$repo || die "Unable to create folder"
+      oldPwd=$PWD
+      cd $tmpZipFolder/$repo       || die "Unable to change folder"
+    fi
     i=1
-    for file in $([ "$gitHubUser" != "ZIPFILE" ] && curl -s https://api.github.com/repos/$gitHubUser/$repo/contents \
-                                                 || tar tzf $LOCAL_ZIP | grep "^$repo" | grep -v "^$repo$" | cut -f2-10 -d "/" | sort -u | sed -e "s;^;\"name\" : ;" \
+    for file in $({ [ "$gitHubUser" != "ZIPFILE" ] && curl -s https://api.github.com/repos/$gitHubUser/$repo/contents \
+                                                   || tar tzf $LOCAL_ZIP | grep "^$repo" | grep -v "^$repo$" | cut -f2-10 -d "/" | sort -u | sed -e "s;^;\"name\" : ;" ; }\
                                         | grep "\"name\"" | cut -f2 -d ":" | sed -e "s;^ *\";;" -e "s;\".*$;;")
     do
       if [ $(($i % 3)) -eq 1 ]
@@ -166,11 +184,54 @@ listGitHub()
         echo -n "    - "
       fi
       printf "%-35.35s" $file
+      if [ "$1" = "GENZIP" ]
+      then
+        curl -OSsl $gitHub/$repo/main/$file
+      fi
       i=$(($i + 1))
     done
+    if [ "$1" = "GENZIP" ]
+    then
+      cd $oldPwd || die "Unable to change folder"
+    fi
     echo 
     echo
   done
+  if [ "$1" = "GENZIP" ]
+  then
+    echo 
+    oldPwd=$PWD
+    printf "  - %-60.60s : " "Generating $PWD/runScript.tgz"
+    cd $tmpZipFolder
+    tar czf $oldPwd/runScript.tgz * && echo "OK" || die "Unable to generate tar file"
+    printf "  - %-60.60s : " "Copying $PWD/runScript.sh"
+    cp main/runScript.sh $oldPwd/runScript.sh && echo "OK" || die "Unable to copy file"
+    cd $oldPwd
+    printf "  - %-60.60s : " "Modifying $PWD/runScript.sh"
+    sed -i "s;^gitHubUser=;gitHubUser=ZIPFILE;" ./runScript.sh && echo "OK" || die "Unable to modify file"
+    [ "$(grep -i TARFILE_GENERATION_START runScript.sh)" = "" ] && die "No TAR generation tag (start)"
+    [ "$(grep -i TARFILE_GENERATION_END   runScript.sh)" = "" ] && die "No TAR generation tag (start)"
+    printf "  - %-60.60s : " "Inserting ZIP into $PWD/runScript.sh"
+    rm -f runScript.sh.tmp
+    cat runScript.sh | awk '
+BEGIN {p=1}
+/TARFILE_GENERATION_START/ { print ; p=0 }
+/TARFILE_GENERATION_END/ { p=1 }
+{ if (p==1) {print} else {next} }' >> runScript.sh.tmp || die "Error getting the end" 
+    echo "OK"
+    cp runScript.sh.tmp runScript.sh
+    printf "  - %-60.60s : " "Removing $tmpZipFolder"
+    rm -rf $tmpZipFolder && echo "OK" || die "Unable to modify file"
+    echo
+    echo "
+    
+         Repositories prepared for offline usage:
+         
+           - copy $PWD/runScript.tgz 
+             and  $PWD/runScript.sh 
+             to the target machine (same folder)
+           - play !"
+  fi
 }
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -482,7 +543,7 @@ set +o noglob
 #echo "args: $savedArgs"
 #exit
 
-while getopts "d:p:HigslLo:O:Bn-?" opt
+while getopts "d:p:HigslLo:O:BnZ-?" opt
 do
   case $opt in
     d) dbUniqueName=$OPTARG ; toShift=$(($toShift + 2)) ;;      # Name of the database (in oratab or $HOME/.env
@@ -497,6 +558,7 @@ do
     s) silent=Y             ; toShift=$(($toShift + 1)) ;;      # Print nothin but the output
     n) paRequest=N          ; toShift=$(($toShift + 1)) ;;      # Do not create pre-auth request
     B) BATCH_MODE=Y         ; toShift=$(($toShift + 1)) ;;      # Launch in BATCH_MODE
+    Z) genZIP=Y             ; toShift=$(($toShift + 1)) ;;      # Generate ZIP file for disconnected usage
     -) break                ; toShift=$(($toShift + 1)) ;;      # stop Processing arguments
     ?|h) shift ; usage ;;
   esac
@@ -543,7 +605,7 @@ then
 fi
 export OCICLI OCICONFIG 
 
-[ "$1" = "" -a "$listRepos" != "Y" ] && die "No script or script code to run"
+[ "$1" = "" -a "$listRepos" != "Y" -a "$genZIP" != "Y" ] && die "No script or script code to run"
 
 if  [ "$uploadScriptOnly" = "Y" ]
 then
@@ -562,6 +624,14 @@ then
   listGitHub
   exit 0
 fi
+
+if [ "$genZIP" = "Y" ]
+then
+  [ -f runScript.sh ] && die "Do not run the ZIP generation from a folder where runScript.sh exists"
+  listGitHub GENZIP
+  exit 0
+fi
+
 [ "$silent" = "Y" ] || echo
 [ "$silent" = "Y" ] || echo "Identifying file to run ($1)"
 [ "$silent" = "Y" ] || echo "======================="
