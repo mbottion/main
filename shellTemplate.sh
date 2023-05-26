@@ -65,19 +65,6 @@ ERROR :
 
   exit 1
 }
-
-
-#if tty -s
-if false
-then
-  die "Please run this script in nohup mode"
-fi
-
-set -o pipefail
-
-SCRIPT=$(basename $0 .sh)
-SCRIPT_LIB="Copy folders and access rights"
-
 exec_sql()
 {
 #
@@ -146,14 +133,14 @@ $bloc_sql
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 usage() 
 {
- echo "$SCRIPT : $SCRIPT_LIB
+ echo "$SCRIPT :
 
 Usage :
- $SCRIPT 
-         [-h|-?]
+ $SCRIPT [-n] [-h|-?]
 
-      Description of the script
+      $SCRIPT_LIB
 
+         -n           : Don't log the output to file
          -?|-h        : Help
 
   Version : $VERSION
@@ -162,27 +149,39 @@ Usage :
 }
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 set -o pipefail
 
-SCRIPT=shellTemplate.sh
-SCRIPT_LIB="Basic shell template"
+#if tty -s
+if false
+then
+  die "Please run this script in nohup mode"
+fi
+
+
+set -o pipefail
+
+SCRIPT=$(basename $0)
+SCRIPT_BASE=$(basename $SCRIPT .sh)
 
 #[ "$(id -un)" != "oracle" ] && die "Merci de lancer ce script depuis l'utilisateur \"oracle\""
 #[ "$(hostname -s | sed -e "s;.*\([0-9]\)$;\1;")" != "1" ] && die "Lancer ce script depuis le premier noeud du cluster"
 
-#[ "$1" = "" ] && usage
+# [ "$1" = "" ] && usage
 
 toShift=0
-while getopts h opt
+while getopts nh opt
 do
   case $opt in
    # --------- Source Database --------------------------------
    # --------- Target Database --------------------------------
    # --------- Modes de fonctionnement ------------------------
    # --------- Usage ------------------------------------------
+   n)   logOutput=NO   ; toShift=$(($toShift + 1)) ;;
    ?|h) usage "Help requested";;
   esac
 done
@@ -193,10 +192,20 @@ shift $toShift
 #
 # -----------------------------------------------------------------------------
 
-LOG_FILE=/dev/null
+LOG_DIR=$HOME/scriptsLOG/$SCRIPT_BASE
+LOG_FILE=$LOG_DIR/${SCRIPT_BASE}_$(date +%Y%m%d_%M%M%S).log
+[ "$logOutput" = "NO" ] && LOG_FILE=/dev/null
 
-startRun "Shell Template"
+[ "$LOG_FILE" != "" -a "$LOG_FILE" != "/dev/null" ] && mkdir -p $LOG_DIR
 
-die
+[ "$OCI_CONFIG_FILE" = "" ] && OCI_CONFIG_FILE=$HOME/.oci/config
+[ ! -f $OCI_CONFIG_FILE ] && die "UNable to find OCICLI config file"
 
-endRun
+
+{
+  startRun "$SCRIPT_LIB"
+  
+  endRun
+  
+} | tee $LOG_FILE
+
