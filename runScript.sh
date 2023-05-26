@@ -1,5 +1,5 @@
 #!/bin/bash
-VERSION=2.0.2
+VERSION=2.0.3
 # ================== Start generic Variables (do not remove or change this line)==================
 dbUniqueName=
 pdbName=
@@ -220,6 +220,7 @@ BEGIN {p=1}
 /^[# ]*TARFILE_GENERATION_START/ { print ; p=0 }
 /^[# ]*TARFILE_GENERATION_END/ { p=1 }
 { if (p==1) {print} else {next} }' >> runScript.sh.tmp || die "Error getting the end" 
+
     echo "OK"
     cp runScript.sh.tmp runScript.sh
     printf "  - %-60.60s : " "Removing $tmpZipFolder"
