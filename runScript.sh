@@ -1,5 +1,5 @@
 #!/bin/bash
-VERSION=2.0.1
+VERSION=2.0.2
 # ================== Start generic Variables (do not remove or change this line)==================
 dbUniqueName=
 pdbName=
@@ -499,11 +499,6 @@ main(){ : ; }
 SCRIPT=runScript.sh
 SCRIPT_DIR=${BASH_SOURCE[0]}
 SCRIPT_DIR=$(dirname "$SCRIPT_DIR")
-if [ "$gitHubUser" = "ZIPFILE" ]
-then
- LOCAL_ZIP=$SCRIPT_DIR/runScript.tgz
- [ -f "$LOCAL_ZIP" ] || die "Disconnected mode => runScript.tgz missing in $SCRIPT_DIR"
-fi
 #
 #   Check if token is in clear text
 #   Returns :
