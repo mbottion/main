@@ -4,8 +4,11 @@
 dbUniqueName=
 pdbName=
 bucketName=
-gitHubToken=
-gitHubUser=
+gitHubToken="@@BASE64TOKEN@@jA0ECQMCEaVGroBSrlr/0l4BVlL7mRmbpMmT9hIX8lRu2GWm4SiI1KUSBNU2hxDuQnlaEMK8/B2VTG2YA3d6KdhKIuvgaxmoiqbprAWs2wVUgHxfNJxDx/mFq/FOiWeeAx08ySaKKSza76IxkovA"
+gitHubUser=mbottion
+# =================================================================================================
+#TARFILE_GENERATION_START (keep this comment to allow insertion of tarfile generation function)
+#TARFILE_GENERATION_END (keep this comment to allow insertion of tarfile generation function)
 # ================== End generic Variables (do not remove or change this line) ==================
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -84,6 +87,7 @@ usage() {
    -O           : Output full name
    -n           : Do not generate Pre-authenticated requesl fo the output
    -B           : Launch the script in batch (nohup)
+   -Z           : Generate files for offline usage
    --           : Remaining arguments are arguments to pass as is to the called script
    scriptName   : Single file name / partial path / fullPath 
    scriptParams : Parameters of the script (try HELP)
@@ -116,8 +120,15 @@ die()
 scriptExists()
 {
   local f=$1
-  curl -fsL "$f" >/dev/null 2>&1
-  return $?
+  if [ "$gitHubUser" = "ZIPFILE" ]
+  then
+    tar tzf $LOCAL_ZIP $1 >/dev/null 2>&1
+    status=$?
+  else
+    curl -fsL "$f" >/dev/null 2>&1
+    status=$?
+  fi
+  return $status
 }
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -128,7 +139,8 @@ scriptExists()
 #
 listGitHub()
 {
-  repos=$(curl -s https://api.github.com/users/$gitHubUser/repos )
+  repos=$([ "$gitHubUser" != "ZIPFILE" ] && curl -s https://api.github.com/users/$gitHubUser/repos \
+                                         || tar tzf $LOCAL_ZIP | cut -f1 -d "/" | sort -u | sed -e "s;^;\"name\" : ;")
   if echo "$repos" | grep \"message\" >/dev/null 
   then
     echo "$repos" 
@@ -144,7 +156,9 @@ listGitHub()
     echo "  - Repository : $repo"
     echo "    =========================="
     i=1
-    for file in $(curl -s https://api.github.com/repos/$gitHubUser/$repo/contents | grep "\"name\"" | cut -f2 -d ":" | sed -e "s;^ *\";;" -e "s;\".*$;;")
+    for file in $([ "$gitHubUser" != "ZIPFILE" ] && curl -s https://api.github.com/repos/$gitHubUser/$repo/contents \
+                                                 || tar tzf $LOCAL_ZIP | grep "^$repo" | grep -v "^$repo$" | cut -f2-10 -d "/" | sort -u | sed -e "s;^;\"name\" : ;" \
+                                        | grep "\"name\"" | cut -f2 -d ":" | sed -e "s;^ *\";;" -e "s;\".*$;;")
     do
       if [ $(($i % 3)) -eq 1 ]
       then
@@ -197,14 +211,20 @@ uploadToGitHub ()
   #
   #  Clean-up file (avoid posting personal information or token)
   #
-  [ "$silent" = "Y" ] || echo "  - Cleaning file"
+  [ "$silent" = "Y" ] || echo "  - Cleaning file (sed)"
   cp -p $f $f.tmp
   for var in dbUniqueName pdbName bucketName gitHubToken gitHubUser
   do
     [ "$silent" = "Y" ] || echo "    - Removing $var value"
-    sed -i "s;^\($var=\).*;\1;" $f.tmp || { rm -f $f.tmp ; die "Error modifying the file" ; }
+    sed -i "s;^\($var=\).*;\1;" $f.tmp || { rm -f $f.tmp ; die "Error modifying the file (sed)" ; }
   done
-
+  [ "$silent" = "Y" ] || echo "  - Cleaning file (awk)"
+  cat "$f" | awk '
+/TARFILE_GENERATION_START/ {d=1 ; print} 
+/TARFILE_GENERATION_END/   { d=0 }
+{ if (d==1) { next } else {print} }
+  ' > $f.tmp
+  [ $? -eq 0 ] && { rm -f $f ; cp $f.tmp $f ; } || { rm -f $f.tmp ; die "Error modifying the file (awk)" ; }
   #
   #     Build the JSON to upload
   #
@@ -252,7 +272,12 @@ runShell()
     outputFile=/tmp/$outputName
   fi
   scriptFile=/tmp/$$.sh.tmp
-  curl -sL "$fullName" > $scriptFile
+  if [ "$gitHubUser" = "ZIPFILE" ]
+  then
+    tar xOzf $LOCAL_ZIP "$fullName" > $scriptFile
+  else
+    curl -sL "$fullName" > $scriptFile
+  fi
   chmod 700 $scriptFile
   eval $scriptFile "$scriptParameters" 2>&1 | tee $outputFile
   status=$?
@@ -373,7 +398,7 @@ rem  alter session set nls_numeric_characters=', ';
   $sqlplusFormatCommand
   $spoolOnCommand
   set feedback 10
-  $(curl -sL "$fullName")
+  $([ "$gitHubUser" = "ZIPFILE" ] && tar xOzf $LOCAL_ZIP "$fullName" || curl -sL "$fullName")
   $spoolOffCommand
   exit
   " > $tmpSQLScript
@@ -402,12 +427,18 @@ rem  alter session set nls_numeric_characters=', ';
   rm -f $tmpSQLScript $$.status
   return $status
 }
-
+main(){ : ; }
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 SCRIPT=runScript.sh
-
+SCRIPT_DIR=${BASH_SOURCE[0]}
+SCRIPT_DIR=$(dirname "$SCRIPT_DIR")
+if [ "$gitHubUser" = "ZIPFILE" ]
+then
+ LOCAL_ZIP=$SCRIPT_DIR/runScript.tgz
+ [ -f "$LOCAL_ZIP" ] || die "Disconnected mode => runScript.tgz missing in $SCRIPT_DIR"
+fi
 #
 #   Check if token is in clear text
 #   Returns :
@@ -472,6 +503,11 @@ do
 done
 shift $toShift
 
+if [ "$gitHubUser" = "ZIPFILE" ]
+then
+  [ "$uploadScriptOnly" = "Y" ] && die "Upload not available when disconnected"
+fi
+
 [ "$USERID_RUNSCRIPT" = "" ] && USERID_RUNSCRIPT="/ as sysdba"
 
 export dbUniqueName pdbName
@@ -530,6 +566,16 @@ fi
 [ "$silent" = "Y" ] || echo "Identifying file to run ($1)"
 [ "$silent" = "Y" ] || echo "======================="
 extraParameters=""
+if [ "$gitHubUser" = "ZIPFILE" ]
+then
+  gitHubRoot1=""
+  gitHubRoot2=""
+  gitHubRoot3=""
+else
+  gitHubRoot1="$gitHub/main/"
+  gitHubRoot2="$gitHub/$(dirname $1)/"
+  gitHubRoot3="$gitHub/"
+fi
 if [ -f $1 ]
 then
   [ "$silent" = "Y" ] || echo "  - Local file "
@@ -539,11 +585,11 @@ then
 elif [ "$1" = "help.sh" ]
 then
   [ "$silent" = "Y" ] || echo "  - Help"
-  fullName="$gitHub/main/main/$1"
+  fullName="${gitHubRoot1}main/$1"
 elif [ "$1" = "sendBucket.sh" ]
 then
   [ "$silent" = "Y" ] || echo "  - sendBucket.sh (remote)"
-  fullName="$gitHub/main/main/$1"
+  fullName="${gitHubRoot1}main/$1"
   extraParameters="-b $bucketName"
 elif [ "$(echo ${1^^} | cut -c 1-4)" = "HTTP" ]
 then
@@ -556,10 +602,11 @@ then
   [ "$silent" = "Y" ] || echo "  - repo/file or repo/branch/file ($nbSlash /)"
   if [ $nbSlash -eq 1 ]
   then
-    fullName=$gitHub/$(dirname $1)/main/$(basename $1)
+    fullName=${gitHubRoot2}main/$(basename $1)
   else
-    fullName=$gitHub/$1
+    fullName=${gitHubRoot3}$1
   fi
+  # echo test1:$fullName
   scriptExists "$fullName" || die "Unable to access $fullName"
 else
   [ "$silent" = "Y" ] || echo "  - Filename only"
@@ -567,7 +614,13 @@ else
   for r in $repositoriesList
   do
     [ "$silent" = "Y" ] || echo "    - Searching $1 in $r"
-    fullName=$gitHub/$r/main/$1
+    if [ "$gitHubUser" = "ZIPFILE" ]
+    then
+      fullName="$r/$1"
+    else
+      fullName=$gitHub/$r/main/$1
+    fi
+    # echo test2:$fullName
     scriptExists "$fullName" && { found=Y ; break ; }
   done
   [ "$found" = "N" ] && die "Script $1 not found in specified repositories" 
@@ -579,7 +632,12 @@ then
   #
   #      Download the script and exit
   #
-  curl -fsLO "$fullName" >/dev/null
+  if [ "$gitHubUser" = "ZIPFILE" ]
+  then
+    tar xOzf $LOCAL_ZIP $fullName > $(basename $fullName)
+  else
+    curl -fsLO "$fullName" >/dev/null
+  fi
   exit 0
 fi
 
