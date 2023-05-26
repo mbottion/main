@@ -1,5 +1,5 @@
 #!/bin/bash
-VERSION=2.0.3
+VERSION=2.0
 # ================== Start generic Variables (do not remove or change this line)==================
 dbUniqueName=
 pdbName=
@@ -226,6 +226,7 @@ BEGIN {p=1}
     printf "  - %-60.60s : " "Removing $tmpZipFolder"
     rm -rf $tmpZipFolder && echo "OK" || die "Unable to modify file"
     rm -f runScript.tgz runScript.sh.tmp
+    chmod 775 runScript.sh
     echo
     echo "
     
