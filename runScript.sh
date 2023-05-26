@@ -281,14 +281,15 @@ uploadToGitHub ()
     [ "$silent" = "Y" ] || echo "    - Removing $var value"
     sed -i "s;^\($var=\).*;\1;" $f.tmp || { rm -f $f.tmp ; die "Error modifying the file (sed)" ; }
   done
-  cp "$f.tmp" "$f"
   [ "$silent" = "Y" ] || echo "  - Cleaning file (awk)"
-  cat "$f" | awk '
+  cat "$f.tmp" | awk '
 /TARFILE_GENERATION_START/ {d=1 ; print} 
 /TARFILE_GENERATION_END/   { d=0 }
 { if (d==1) { next } else {print} }
-  ' > $f.tmp
-  [ $? -eq 0 ] && { rm -f $f ; cp $f.tmp $f ; } || { rm -f $f.tmp ; die "Error modifying the file (awk)" ; }
+  ' > $f.tmp2
+  [ $? -eq 0 ] || { rm -f $f.tmp $f.tmp2 ; die "Error modifying the file (awk)" ; }
+  rm -f $f.tmp
+  cp $f.tmp2 $f.tmp
   #
   #     Build the JSON to upload
   #
