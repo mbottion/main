@@ -1,11 +1,11 @@
 #!/bin/bash
 VERSION=2.0
 # ================== Start generic Variables (do not remove or change this line)==================
-dbUniqueName=IFOPAMEC
-pdbName=IFOPAME
-bucketName=${bucketName:-LOCAL_FILE}
-gitHubToken="@@BASE64TOKEN@@jA0ECQMCEaVGroBSrlr/0l4BVlL7mRmbpMmT9hIX8lRu2GWm4SiI1KUSBNU2hxDuQnlaEMK8/B2VTG2YA3d6KdhKIuvgaxmoiqbprAWs2wVUgHxfNJxDx/mFq/FOiWeeAx08ySaKKSza76IxkovA"
-gitHubUser=mbottion
+dbUniqueName=
+pdbName=
+bucketName=
+gitHubToken=
+gitHubUser=
 # =================================================================================================
 #TARFILE_GENERATION_START (keep this comment to allow insertion of tarfile generation function)
 #TARFILE_GENERATION_END (keep this comment to allow insertion of tarfile generation function)
@@ -281,6 +281,7 @@ uploadToGitHub ()
     [ "$silent" = "Y" ] || echo "    - Removing $var value"
     sed -i "s;^\($var=\).*;\1;" $f.tmp || { rm -f $f.tmp ; die "Error modifying the file (sed)" ; }
   done
+  cp "$f.tmp" "$f"
   [ "$silent" = "Y" ] || echo "  - Cleaning file (awk)"
   cat "$f" | awk '
 /TARFILE_GENERATION_START/ {d=1 ; print} 
