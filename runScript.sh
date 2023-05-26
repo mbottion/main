@@ -1,5 +1,5 @@
 #!/bin/bash
-
+VERSION=2.0
 # ================== Start generic Variables (do not remove or change this line)==================
 dbUniqueName=IFOPAMEC
 pdbName=IFOPAME
@@ -74,7 +74,7 @@ secureToken()
   fi
 }
 usage() {
- echo "Usage :
+ echo "Usage (Version=$VERSION) :
  $SCRIPT [-?] [-d dbName] [-p pdbName] [-H] [-i] [-g] [-l] [-L] {scriptName [scriptParams]}
    -?           : Help
    -H           : html output
@@ -122,7 +122,7 @@ scriptExists()
   local f=$1
   if [ "$gitHubUser" = "ZIPFILE" ]
   then
-    tar tzf $LOCAL_ZIP $1 >/dev/null 2>&1
+    genZipFile | tar tzf - $1 >/dev/null 2>&1
     status=$?
   else
     curl -fsL "$f" >/dev/null 2>&1
@@ -144,7 +144,7 @@ listGitHub()
     [ "$gitHubUser" = "ZIPFILE" ] && die "Unable to generate ZIP file in disconnected mode"
   fi
   repos=$([ "$gitHubUser" != "ZIPFILE" ] && curl -s https://api.github.com/users/$gitHubUser/repos \
-                                         || tar tzf $LOCAL_ZIP | cut -f1 -d "/" | sort -u | sed -e "s;^;\"name\" : ;")
+                                         || genZipFile | tar tzf - | cut -f1 -d "/" | sort -u | sed -e "s;^;\"name\" : ;")
   if echo "$repos" | grep \"message\" >/dev/null 
   then
     echo "$repos" 
@@ -175,7 +175,7 @@ listGitHub()
     fi
     i=1
     for file in $({ [ "$gitHubUser" != "ZIPFILE" ] && curl -s https://api.github.com/repos/$gitHubUser/$repo/contents \
-                                                   || tar tzf $LOCAL_ZIP | grep "^$repo" | grep -v "^$repo$" | cut -f2-10 -d "/" | sort -u | sed -e "s;^;\"name\" : ;" ; }\
+                                                   || genZipFile | tar tzf - | grep "^$repo" | grep -v "^$repo$" | cut -f2-10 -d "/" | sort -u | sed -e "s;^;\"name\" : ;" ; }\
                                         | grep "\"name\"" | cut -f2 -d ":" | sed -e "s;^ *\";;" -e "s;\".*$;;")
     do
       if [ $(($i % 3)) -eq 1 ]
@@ -183,7 +183,7 @@ listGitHub()
         echo
         echo -n "    - "
       fi
-      printf "%-35.35s" $file
+      printf "%-40.40s" $file
       if [ "$1" = "GENZIP" ]
       then
         curl -OSsl $gitHub/$repo/main/$file
@@ -208,28 +208,30 @@ listGitHub()
     cp main/runScript.sh $oldPwd/runScript.sh && echo "OK" || die "Unable to copy file"
     cd $oldPwd
     printf "  - %-60.60s : " "Modifying $PWD/runScript.sh"
-    sed -i "s;^gitHubUser=;gitHubUser=ZIPFILE;" ./runScript.sh && echo "OK" || die "Unable to modify file"
+    sed -i "s;^gitHubUser=.*$;gitHubUser=ZIPFILE;" ./runScript.sh && echo "OK" || die "Unable to modify file"
     [ "$(grep -i TARFILE_GENERATION_START runScript.sh)" = "" ] && die "No TAR generation tag (start)"
     [ "$(grep -i TARFILE_GENERATION_END   runScript.sh)" = "" ] && die "No TAR generation tag (start)"
     printf "  - %-60.60s : " "Inserting ZIP into $PWD/runScript.sh"
+
     rm -f runScript.sh.tmp
+
     cat runScript.sh | awk '
 BEGIN {p=1}
-/TARFILE_GENERATION_START/ { print ; p=0 }
-/TARFILE_GENERATION_END/ { p=1 }
+/^[# ]*TARFILE_GENERATION_START/ { print ; p=0 }
+/^[# ]*TARFILE_GENERATION_END/ { p=1 }
 { if (p==1) {print} else {next} }' >> runScript.sh.tmp || die "Error getting the end" 
     echo "OK"
     cp runScript.sh.tmp runScript.sh
     printf "  - %-60.60s : " "Removing $tmpZipFolder"
     rm -rf $tmpZipFolder && echo "OK" || die "Unable to modify file"
+    rm -f runScript.tgz runScript.sh.tmp
     echo
     echo "
     
          Repositories prepared for offline usage:
          
-           - copy $PWD/runScript.tgz 
-             and  $PWD/runScript.sh 
-             to the target machine (same folder)
+           - $PWD/runScript.sh 
+             to the target machine
            - play !"
   fi
 }
@@ -335,7 +337,7 @@ runShell()
   scriptFile=/tmp/$$.sh.tmp
   if [ "$gitHubUser" = "ZIPFILE" ]
   then
-    tar xOzf $LOCAL_ZIP "$fullName" > $scriptFile
+    genZipFile | tar xOzf - "$fullName" > $scriptFile
   else
     curl -sL "$fullName" > $scriptFile
   fi
@@ -459,7 +461,7 @@ rem  alter session set nls_numeric_characters=', ';
   $sqlplusFormatCommand
   $spoolOnCommand
   set feedback 10
-  $([ "$gitHubUser" = "ZIPFILE" ] && tar xOzf $LOCAL_ZIP "$fullName" || curl -sL "$fullName")
+  $([ "$gitHubUser" = "ZIPFILE" ] && { genZipFile | tar xOzf - "$fullName" ; }  || curl -sL "$fullName")
   $spoolOffCommand
   exit
   " > $tmpSQLScript
@@ -704,7 +706,7 @@ then
   #
   if [ "$gitHubUser" = "ZIPFILE" ]
   then
-    tar xOzf $LOCAL_ZIP $fullName > $(basename $fullName)
+    genZipFile | tar xOzf - $fullName > $(basename $fullName)
   else
     curl -fsLO "$fullName" >/dev/null
   fi
