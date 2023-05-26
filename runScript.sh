@@ -7,8 +7,8 @@ bucketName=
 gitHubToken="@@BASE64TOKEN@@jA0ECQMCEaVGroBSrlr/0l4BVlL7mRmbpMmT9hIX8lRu2GWm4SiI1KUSBNU2hxDuQnlaEMK8/B2VTG2YA3d6KdhKIuvgaxmoiqbprAWs2wVUgHxfNJxDx/mFq/FOiWeeAx08ySaKKSza76IxkovA"
 gitHubUser=mbottion
 # =================================================================================================
-#TARFILE_GENERATION_START (keep this comment to allow insertion of tarfile generation function)
-#TARFILE_GENERATION_END (keep this comment to allow insertion of tarfile generation function)
+#TARFILE_GENERATION_START (keep this comment to allow insertion of tarfile generation function - start)
+#TARFILE_GENERATION_END (keep this comment to allow insertion of tarfile generation function - end)
 # ================== End generic Variables (do not remove or change this line) ==================
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
