@@ -525,7 +525,7 @@ case $? in
   *) die "Unable to determine token encryption state" ;;
 esac
 
-repositoriesList="SQLTools ASMTools CNAFTools"       # List of common repositories (for those repos, the file name is sufficient to run a file
+repositoriesList="SQLTools ASMTools DGTools CTools"  # List of common repositories (for those repos, the file name is sufficient to run a file
 outputType=txt                                       # Default output
 screenOutputOnly=N                                   # Controls the sending of the output
 toShift=0                                            # Number of parameters to shift to eliminate the options and keep scripts parameters
