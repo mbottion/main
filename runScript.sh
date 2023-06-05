@@ -218,17 +218,40 @@ listGitHub()
     sed -i "s;^gitHubUser=.*$;gitHubUser=ZIPFILE;" ./runScript.sh && echo "OK" || die "Unable to modify file"
     [ "$(grep -i TARFILE_GENERATION_START runScript.sh)" = "" ] && die "No TAR generation tag (start)"
     [ "$(grep -i TARFILE_GENERATION_END   runScript.sh)" = "" ] && die "No TAR generation tag (start)"
-    printf "  - %-60.60s : " "Inserting ZIP into $PWD/runScript.sh"
+    printf "  - %-60.60s \n" "Inserting ZIP into $PWD/runScript.sh"
 
     rm -f runScript.sh.tmp
 
-    cat runScript.sh | awk '
+    printf "    - %-58.58s : " "Start of the script"
+    cat ./runScript.sh | awk '
 BEGIN {p=1}
 /^[# ]*TARFILE_GENERATION_START/ { print ; p=0 }
-/^[# ]*TARFILE_GENERATION_END/ { p=1 }
-{ if (p==1) {print} else {next} }' >> runScript.sh.tmp || die "Error getting the end" 
+/^[# ]*TARFILE_GENERATION_END/ { p=0 }
+{ if (p==1) {print} else {next} }' >> runScript.sh.tmp || die "Error getting the begining" 
+    echo OK
 
+    printf "    - %-58.58s : " "Start of the decompression function"
+    echo "genZipFile()
+{
+  cat << %%EOF%% | base64 -d" >> runScript.sh.tmp
+    echo OK
+    
+    printf "    - %-58.58s : " "Base 64 ZIP file"
+    base64 -w 200 $PWD/runScript.tgz >> runScript.sh.tmp && echo "OK" || die "Error encoding ZIP"
+    
+    printf "    - %-58.58s : " "End of the decompression function"
+    echo "%%EOF%%
+}" >> runScript.sh.tmp
+    echo OK
+    
+    printf "    - %-58.58s : " "Remaining of the script"
+    cat runScript.sh | awk '
+BEGIN {p=0}
+/^[# ]*TARFILE_GENERATION_START/ { p=0 }
+/^[# ]*TARFILE_GENERATION_END/   { p=1 }
+{ if (p==1) {print} else {next} }' >> runScript.sh.tmp || die "Error getting the end" 
     echo "OK"
+    
     cp runScript.sh.tmp runScript.sh
     printf "  - %-60.60s : " "Removing $tmpZipFolder"
     rm -rf $tmpZipFolder && echo "OK" || die "Unable to modify file"
