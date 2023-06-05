@@ -122,14 +122,21 @@ scriptExists()
   local f=$1
   if [ "$gitHubUser" = "ZIPFILE" ]
   then
-    genZipFile | tar tzf - $1 >/dev/null 2>&1
-    status=$?
+    case $1 in
+      file://*) test -f $(echo $1 | cut -c8-200)
+                status=$?
+                ;;
+      *)        genZipFile | tar tzf - $1 >/dev/null 2>&1
+                status=$?
+                ;;
+    esac
   else
     curl -fsL "$f" >/dev/null 2>&1
     status=$?
   fi
   return $status
 }
+
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -341,7 +348,10 @@ runShell()
   scriptFile=/tmp/$$.sh.tmp
   if [ "$gitHubUser" = "ZIPFILE" ]
   then
-    genZipFile | tar xOzf - "$fullName" > $scriptFile
+    case "$fullName" in
+      file://*) curl -sL "$fullName" > $scriptFile ;;
+      *)        genZipFile | tar xOzf - "$fullName" > $scriptFile
+    esac
   else
     curl -sL "$fullName" > $scriptFile
   fi
@@ -465,7 +475,7 @@ rem  alter session set nls_numeric_characters=', ';
   $sqlplusFormatCommand
   $spoolOnCommand
   set feedback 10
-  $([ "$gitHubUser" = "ZIPFILE" ] && { genZipFile | tar xOzf - "$fullName" ; }  || curl -sL "$fullName")
+  $([ "$gitHubUser" = "ZIPFILE" ] && { case "$fullName" in file://*) curl -sL "$fullName" ;; *) genZipFile | tar xOzf - "$fullName" ;; esac ; }  || curl -sL "$fullName")
   $spoolOffCommand
   exit
   " > $tmpSQLScript
