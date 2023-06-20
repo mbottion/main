@@ -321,7 +321,7 @@ uploadToGitHub ()
   ' > $f.tmp2
   [ $? -eq 0 ] || { rm -f $f.tmp $f.tmp2 ; die "Error modifying the file (awk)" ; }
   rm -f $f.tmp
-  cp $f.tmp2 $f.tmp
+  cp $f.tmp2 $f.tmp && rm -f $f.tmp2
   #
   #     Build the JSON to upload
   #
