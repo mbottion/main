@@ -321,7 +321,7 @@ uploadToGitHub ()
   ' > $f.tmp2
   [ $? -eq 0 ] || { rm -f $f.tmp $f.tmp2 ; die "Error modifying the file (awk)" ; }
   rm -f $f.tmp
-  cp $f.tmp2 $f.tmp && rm -f $f.tmp2
+  cp $f.tmp2 $f.tmp
   #
   #     Build the JSON to upload
   #
@@ -706,7 +706,12 @@ then
   [ "$silent" = "Y" ] || echo "  - repo/file or repo/branch/file ($nbSlash /)"
   if [ $nbSlash -eq 1 ]
   then
-    fullName=${gitHubRoot2}main/$(basename $1)
+    if [ "$gitHubUser" = "ZIPFILE" ]
+    then
+      fullName="$1"
+    else
+      fullName=${gitHubRoot2}main/$(basename $1)
+    fi
   else
     fullName=${gitHubRoot3}$1
   fi
@@ -793,13 +798,14 @@ then
       envOk=Y
     fi
   fi
-  if [ "$envOk" = "N" -a -f "$HOME/$dbUniqueName.env" ]
+  if [ "$envOk" = "N" -a \( -f "$HOME/$dbUniqueName.env" -o -f "./$dbUniqueName.env" \) ]
   then
     #
     #    If setup not possible with ORATAB, try to use de $HOME env file.
     #
     [ "$silent" = "Y" ] || echo "    - Env file found "
-    . $HOME/$dbUniqueName.env
+    [ -f $HOME/$dbUniqueName.env ] && . $HOME/$dbUniqueName.env
+    [ -f ./$dbUniqueName.env ] && . ./$dbUniqueName.env
     envOk=Y
   fi
     
@@ -942,6 +948,7 @@ Script was run in the following environment :
    Host           : $(hostname -f)
    DB Unique Name : $dbUniqueName
    PDB Name       : $pdbName
+   Userid used    : $(echo $USERID_RUNSCRIPT | sed -e "s;/[^ @]*;/XXXXXX;")
 ============================================================================
 "
 
