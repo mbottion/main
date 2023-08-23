@@ -882,7 +882,7 @@ fi
 #
 #      Call the run routine depending on the script's extension
 #
-ext=$(echo $fullName | sed -e "s;.*\.\([^\.]*\);\1;" | tr [a-z] [A-Z])
+ext=$(echo $fullName | sed -e "s;.*\.\([^\.]*\);\1;" | tr '[a-z]' '[A-Z]')
 case $ext in
   SQL) runSQL  ; status=$? ;;
   SH) runShell ; status=$? ;;
