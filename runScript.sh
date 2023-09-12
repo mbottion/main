@@ -599,6 +599,13 @@ do
 done
 shift $toShift
 
+if [ "$outputPrefix" != "" -o "$outputName" != "" ]
+then
+  #
+  #    Force LOCAL_FILE if we want a file and NO bucket specified
+  #
+  [ "$bucketName" = "" ] && bucketName="LOCAL_FILE"
+fi
 if [ "$gitHubUser" = "ZIPFILE" ]
 then
   [ "$uploadScriptOnly" = "Y" ] && die "Upload not available when disconnected"
