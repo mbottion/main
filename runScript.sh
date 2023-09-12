@@ -1,5 +1,5 @@
 #!/bin/bash
-VERSION=2.0
+VERSION=2.1
 # ================== Start generic Variables (do not remove or change this line)==================
 dbUniqueName=
 pdbName=
