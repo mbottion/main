@@ -21,6 +21,15 @@ Usage :
   "
   exit
 }
+secs2HMS()
+{
+  local secs=$1
+  local h=$(( $secs / 3600))
+  local r=$(( $secs % 3600 ))
+  local m=$(( $r / 60))
+  local s=$(( $r % 60))
+  printf "%4d:%02d:%02d" $h $m $s
+}
 libAction()
 {
   local mess="$1"
