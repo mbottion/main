@@ -76,14 +76,15 @@ killSplit()
   echo "  - CTRL-C received in process $currentPROCESS"
   echo "  - Kill $splitPID"
   kill -9 $splitPID
+  ps -ef | grep split | grep split.$currentPROCESS | grep -v grep | awk '{print $2}' | xargs kill -9 2>/dev/null
   echo "  - Kill curls"
-  ps -ef | grep curl | grep split.$currentPROCESS | grep -v grep | awk '{print $2}' | xargs kill -9
-  echo "  - Removing .split.$currentPROCESS files"
+  ps -ef | grep curl | grep split.$currentPROCESS | grep -v grep | awk '{print $2}' | xargs kill -9 2>/dev/null
+  echo "  - Removing *.split.$currentPROCESS files"
   rm -f *.split.$currentPROCESS
   rm -f *.split.log.$currentPROCESS
   rm -f *.splitKO.$currentPROCESS
-  echo "  - Removing .split.$currentPROCESS files"
-  rm -f *.errLoad.$currentPROCESS
+  echo "  - Removing *.split.$currentPROCESS files"
+  rm -f *.split.$currentPROCESS.errLoad
   echo "  - Exiting"
   if [ "$accessURI" != "" ]
   then
@@ -267,7 +268,9 @@ listBucket()
   fi
   i=0
   temp=$(mktemp)
-  curl -s $bucketRead | sed -e "s;^.*\[;;" | tr ',' '\n' | sed -e "s;[{\"}];;g" > $temp
+  curl -s $bucketRead | sed -e "s;^.*\[;;" | tr ',' '\n' | sed -e "s;[{\"}];;g" -e "s;\];;g"> $temp
+  echo >> $temp
+  sed -i "/ *$^/ d" $temp
   while read line
   do
     f=$(echo $line | cut -f2 -d":")
@@ -304,9 +307,19 @@ getFile()
     die "$f does not exits in the bucket"
   fi
   echo "  - get $f"
-  rm -f $f
-  curl -s -O $bucketRead/$f
-  [ ! -f $f  ] && die "Error retrieving $f"
+  curl -s -o $f.tmp.$$ $(echo $bucketRead | sed -e "s;/*$;;")/$f
+  [ ! -f $f.tmp.$$  ] && die "Error retrieving $f"
+  if grep "{\"code\":" $f.tmp.$$ > /dev/null
+  then
+    cat $f.tmp.$$
+    rm -f $f.tmp.$$
+    die "Error downloading $f"
+  else
+    mode=""
+    [ -f $f ] && mode=$(stat -c%a $f)
+    mv $f.tmp.$$ $f
+    [ "$mode" != "" ] && chmod $mode $f
+  fi
 }
 
 #
@@ -314,8 +327,8 @@ getFile()
 #
 MAX_SIZE=$((1024 * 1024 * 1024 * 20))           # Beyond this size, we use multipart UPLOAD
 # MAX_SIZE=0                                    # If MAX_SIZE=0, standard upload, whatever the file size is
-SPLIT_SIZE=$((1024 * 1024 * 1024 * 2))          # Split chunck size
-MAX_CURL=15                                     # Number of cuncurrent curls permited
+SPLIT_SIZE=$((1024 * 1024 * 1024 * 1))          # Split chunck size
+MAX_CURL=20                                     # Number of cuncurrent curls permited
 genPAR=Y                                        # After upload, a attempt to create a PAR is done
 # PAR to write to the bucket
 bucketName=
