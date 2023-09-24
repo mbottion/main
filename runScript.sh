@@ -308,7 +308,7 @@ uploadToGitHub ()
   #
   [ "$silent" = "Y" ] || echo "  - Cleaning file (sed)"
   cp -p $f $f.tmp
-  for var in dbUniqueName pdbName bucketName gitHubToken gitHubUser
+  for var in dbUniqueName pdbName bucketName bucketRead gitHubToken gitHubUser
   do
     [ "$silent" = "Y" ] || echo "    - Removing $var value"
     sed -i "s;^\($var=\).*;\1;" $f.tmp || { rm -f $f.tmp ; die "Error modifying the file (sed)" ; }
