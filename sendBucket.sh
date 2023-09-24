@@ -116,10 +116,10 @@ uploadFile()
   indent="${indent}  - $(basename $1) : "
   local start_upload_part=$(date +%s)
   echo "${indent}Upload start(background) $s"
-  curl -v -X PUT --data-binary @$1 ${accessURI}$2 >$1.errLoad 2>&1
+  curl -w "Status:%{http_code}" -v -X PUT --data-binary @$1 ${accessURI}$2 >$1.errLoad 2>&1
   local end_upload_part=$(date +%s)
   local secs=$(($end_upload_part - $start_upload_part))
-  if grep "We are completely uploaded and fine" $1.errLoad >/dev/null
+  if grep "Status:200" $1.errLoad >/dev/null
   then
     echo "${indent}sucessfully uploaded in $(secs2HMS $secs)"
     rm -f $1.errLoad
@@ -174,7 +174,7 @@ multiPartUpload()
   part=1
   #
   #    Launch file split in background (first part is '1'
-  {}
+  #
   splitFile $1 &
   splitPID=$!
   echo "    PID=$splitPID"
@@ -275,7 +275,12 @@ listBucket()
     then
       echo -n "  - " 
     fi
-    echo $f
+    echo -n $f
+    if [ -t 1 ] 
+    then
+      echo -n " ($(echo $bucketRead | sed -e "s;/*$;;")/$f)" 
+    fi
+    echo
     i=$(($i+1))
   done < $temp
   rm -f $temp
@@ -386,8 +391,8 @@ do
     then
       echo -n "Standard upload --> "
       start_standard=$(date +%s)
-      curl -v -fT $f ${bucketName} >/tmp/$$.tmp 2>&1
-      if grep "We are completely uploaded and fine" /tmp/$$.tmp >/dev/null
+      curl -w "Status:%{http_code}" -v -fT $f ${bucketName} >/tmp/$$.tmp 2>&1
+      if grep "Status:200" /tmp/$$.tmp >/dev/null
       then
         end_standard=$(date +%s)
         secs=$(($end_standard - $start_standard))
