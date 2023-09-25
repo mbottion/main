@@ -301,6 +301,7 @@ getFile()
   #     Download a given file, only if a bucket read PAR is available.
   #
   f=$1
+  local start_dl=$(date +%s)
   echo "  - Testing file existence"
   if ! listBucket | grep "^$f" >/dev/null
   then
@@ -319,6 +320,10 @@ getFile()
     [ -f $f ] && mode=$(stat -c%a $f)
     mv $f.tmp.$$ $f
     [ "$mode" != "" ] && chmod $mode $f
+    local end_dl=$(date +%s)
+    local secs=$(($end_dl - $start_dl))
+    echo "  - $f sucessfully downloaded in $(secs2HMS $secs)"
+    exit 0
   fi
 }
 
