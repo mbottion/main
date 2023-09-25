@@ -330,9 +330,9 @@ MAX_SIZE=$((1024 * 1024 * 1024 * 20))           # Beyond this size, we use multi
 SPLIT_SIZE=$((1024 * 1024 * 1024 * 1))          # Split chunck size
 MAX_CURL=20                                     # Number of cuncurrent curls permited
 genPAR=N                                        # After upload, a attempt to create a PAR is done
-# PAR to write to the bucket
+# PAR to write to the bucket (PAR wite : expires 2024-12-31)
 bucketName=
-# PAR to read the bucket
+# PAR to read the bucket (PAR read : expires 2024-12-31)
 bucketRead=
 
 trap killSplit INT                              # Trap to clean background processes 
