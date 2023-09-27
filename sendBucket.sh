@@ -329,7 +329,7 @@ MAX_SIZE=$((1024 * 1024 * 1024 * 20))           # Beyond this size, we use multi
 # MAX_SIZE=0                                    # If MAX_SIZE=0, standard upload, whatever the file size is
 SPLIT_SIZE=$((1024 * 1024 * 1024 * 1))          # Split chunck size
 MAX_CURL=20                                     # Number of cuncurrent curls permited
-genPAR=N                                        # After upload, a attempt to create a PAR is done
+genPAR=Y                                        # After upload, a attempt to create a PAR is done
 # PAR to write to the bucket (PAR wite : expires 2024-12-31)
 bucketName=
 # PAR to read the bucket (PAR read : expires 2024-12-31)
