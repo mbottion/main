@@ -340,7 +340,7 @@ trap killSplit INT                              # Trap to clean background proce
 SCRIPT=$(basename $0)
 PARValidity=1
 ToShift=0
-while getopts ":b:t:lg:h?" opt
+while getopts ":b:t:lg:nh?" opt
 do
   case $opt in
     b) bucketName=$OPTARG ; ToShift=$(($ToShift + 2)) ;;
