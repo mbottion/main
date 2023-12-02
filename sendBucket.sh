@@ -347,6 +347,7 @@ do
     t) PARValidity=$OPTARG ; ToShift=$(($ToShift + 2)) ;;
     l) LIST_BUCKET=Y ; ToShift=$(($ToShift + 1)) ;;
     g) GET_FILE=Y ; fileToGet=$OPTARG ; ToShift=$(($ToShift + 2)) ;;
+    n) genPAR=N ; ToShift=$(($ToShift + 1)) ;;
     ?|h) shift ; usage ;;
   esac
 done
