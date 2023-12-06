@@ -635,6 +635,12 @@ then
 elif [ -f "$HOME/bin/oci" ]
 then
   OCICLI="$HOME/bin/oci"
+else
+  tmp=$(which oci 2>/dev/null)
+  if [ -f $tmp ]
+  then
+    OCICLI=$tmp
+  fi
 fi
 scriptFile=$(readlink -f $0)
 if [ -f "$(dirname $scriptFile)/.oci/config" ]
