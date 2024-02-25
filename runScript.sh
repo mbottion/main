@@ -4,6 +4,7 @@ VERSION=2.1
 dbUniqueName=
 pdbName=
 bucketName=
+bucketRead=
 gitHubToken=
 gitHubUser=
 # =================================================================================================
@@ -929,24 +930,33 @@ then
     f=$(basename $outputFile)
     if [ "$paRequest" != "N" -a "$silent" != "Y" ]
     then
-      if [ "$OCICLI" != "" ]
+      if [ "$OCICLI" != "" -o "$bucketRead" != "" ]
       then
         echo "    - Generating Pre-authenticated Request ...."
-        expireDate=$(date -d "Tomorrow" "+%Y-%m-%dT%H:%M:%SZ")
-        result=$($OCICLI os preauth-request create --config-file $OCICONFIG --access-type ObjectRead --bucket-name MBO --object-name $f --time-expires $expireDate --name $f)
-        if [ $? -eq 0 ]
+        if [ "$bucketRead" = "" ]
         then
-          accessURI=$(echo "$result" | grep access-uri | cut -f2 -d":"| cut -f2 -d "\"")
-          echo "    - File can be downloaded with "
-          echo
-          #echo "curl -O https://objectstorage.eu-frankfurt-1.oraclecloud.com$accessURI"  | fold -w 90 | sed -e "s;$;\\\\;" | sed -e "$ s;\\\\$;;"
-          echo "curl -O https://objectstorage.eu-frankfurt-1.oraclecloud.com$accessURI"  
-          echo
+          expireDate=$(date -d "Tomorrow" "+%Y-%m-%dT%H:%M:%SZ")
+          result=$($OCICLI os preauth-request create --config-file $OCICONFIG --access-type ObjectRead --bucket-name MBO --object-name $f --time-expires $expireDate --name $f)
+          if [ $? -eq 0 ]
+          then
+            accessURI=$(echo "$result" | grep access-uri | cut -f2 -d":"| cut -f2 -d "\"")
+            echo "    - File can be downloaded with "
+            echo
+            #echo "curl -O https://objectstorage.eu-frankfurt-1.oraclecloud.com$accessURI"  | fold -w 90 | sed -e "s;$;\\\\;" | sed -e "$ s;\\\\$;;"
+            echo "curl -O https://objectstorage.eu-frankfurt-1.oraclecloud.com$accessURI"  
+            echo
+          else
+            echo "    - Access URI not generated"
+          fi
         else
-          echo "    - Access URI not generated"
+                      echo "    - File can be downloaded with (bucket Read)"
+            echo
+            echo "curl -O $bucketRead$f"
+            echo
+
         fi
       else
-        die "Unable to find ocicli ($OCICLI) or config file ($OCICONFIG)"
+        die "Unable to find ocicli ($OCICLI) or config file ($OCICONFIG) and no bucketRead URL"
       fi
     fi  
   else
