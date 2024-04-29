@@ -12,6 +12,8 @@ gitHubUser=
 #TARFILE_GENERATION_END (keep this comment to allow insertion of tarfile generation function)
 # ================== End generic Variables (do not remove or change this line) ==================
 
+export bucketName bucketRead
+
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 decryptToken()
 {
