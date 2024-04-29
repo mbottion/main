@@ -335,10 +335,9 @@ MAX_SIZE=$((1024 * 1024 * 1024 * 20))           # Beyond this size, we use multi
 SPLIT_SIZE=$((1024 * 1024 * 1024 * 1))          # Split chunck size
 MAX_CURL=20                                     # Number of cuncurrent curls permited
 genPAR=N                                        # After upload, a attempt to create a PAR is done
-# PAR to write to the bucket (PAR wite : expires 2024-12-31)
 bucketName=
-# PAR to read the bucket (PAR read : expires 2024-12-31)
 bucketRead=
+#bucketRead=https://objectstorage.eu-frankfurt-1.oraclecloud.com/p/h5cmWWrN0qi8sPpKQ6AwNC8yAD8Dx6Msm0GU24ZUjdaYD9QvkICuyCw300EW_NP5/n/cnafsi/b/MBO/o/
 
 trap killSplit INT                              # Trap to clean background processes 
 
@@ -455,6 +454,14 @@ do
       else
         echo "Unable to find ocicli or config file ($OCICONFIG)"
       fi
+    else
+     if [ "$bucketRead" != "" ]
+     then
+       echo
+       echo "Readable bucket, the file can be accessed with:"
+       echo "  ${bucketRead}$(basename $f)"
+       echo
+     fi
     fi
     rm -f /tmp/$$.tmp
   else
