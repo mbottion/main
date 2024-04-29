@@ -301,6 +301,7 @@ getFile()
   #     Download a given file, only if a bucket read PAR is available.
   #
   f=$1
+  local start_dl=$(date +%s)
   echo "  - Testing file existence"
   if ! listBucket | grep "^$f" >/dev/null
   then
@@ -319,6 +320,10 @@ getFile()
     [ -f $f ] && mode=$(stat -c%a $f)
     mv $f.tmp.$$ $f
     [ "$mode" != "" ] && chmod $mode $f
+    local end_dl=$(date +%s)
+    local secs=$(($end_dl - $start_dl))
+    echo "  - $f sucessfully downloaded in $(secs2HMS $secs)"
+    exit 0
   fi
 }
 
@@ -329,30 +334,33 @@ MAX_SIZE=$((1024 * 1024 * 1024 * 20))           # Beyond this size, we use multi
 # MAX_SIZE=0                                    # If MAX_SIZE=0, standard upload, whatever the file size is
 SPLIT_SIZE=$((1024 * 1024 * 1024 * 1))          # Split chunck size
 MAX_CURL=20                                     # Number of cuncurrent curls permited
-genPAR=Y                                        # After upload, a attempt to create a PAR is done
-# PAR to write to the bucket (PAR wite : expires 2024-12-31)
-bucketName=
-# PAR to read the bucket (PAR read : expires 2024-12-31)
-bucketRead=
+genPAR=N                                        # After upload, a attempt to create a PAR is done
+
+[ "$bucketRead" = "" ] && die "No value un the environment for bucketRead"
 
 trap killSplit INT                              # Trap to clean background processes 
 
 SCRIPT=$(basename $0)
 PARValidity=1
-ToShift=0
-while getopts ":b:t:lg:nh?" opt
+tShift=0
+while getopts ":b:t:lg:h?" opt
 do
   case $opt in
     b) bucketName=$OPTARG ; ToShift=$(($ToShift + 2)) ;;
     t) PARValidity=$OPTARG ; ToShift=$(($ToShift + 2)) ;;
     l) LIST_BUCKET=Y ; ToShift=$(($ToShift + 1)) ;;
     g) GET_FILE=Y ; fileToGet=$OPTARG ; ToShift=$(($ToShift + 2)) ;;
-    n) genPAR=N ; ToShift=$(($ToShift + 1)) ;;
     ?|h) shift ; usage ;;
   esac
 done
 shift $ToShift
 
+#
+#      buckerName : PAR to upload files
+#      bucketRead : PAR to download (if it does not allow listing -- & -g will not work
+#
+
+[ "$bucketName" = "" ] && die "No value un the environment for bucketName"
 [ "$OCI_CONFIG_FILE" != "" ] && OCICONFIG=$OCI_CONFIG_FILE
 
 if [ "$OCICLI"="" ]
@@ -451,6 +459,14 @@ do
       else
         echo "Unable to find ocicli or config file ($OCICONFIG)"
       fi
+    else
+     if [ "$bucketRead" != "" ]
+     then
+       echo
+       echo "Readable bucket, the file can be accessed with:"
+       echo "  ${bucketRead}$(basename $f)"
+       echo
+     fi
     fi
     rm -f /tmp/$$.tmp
   else
